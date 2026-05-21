@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Court Sheet — Live Volleyball Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#161b22;
+    --panel-2:#1d242e;
+    --line:#2a323d;
+    --ink:#eef2f6;
+    --ink-dim:#9aa7b4;
+    --ink-faint:#5f6c79;
+    --court:#c87d4a;        /* clay/wood court */
+    --court-back:#9c5f37;
+    --court-line:#fdf3e7;
+    --g3:#27d17f;           /* perfect */
+    --g2:#3fa9f5;           /* good */
+    --g1:#f5b53d;           /* poor */
+    --g0:#ff5d5d;           /* shank/ace */
+    --kill:#27d17f;
+    --err:#ff5d5d;
+    --blk:#b06bff;
+    --inp:#7d8da0;
+    --accent:#ffd24a;
+    --radius:14px;
+    --shadow:0 6px 22px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 800px at 80% -10%, #1a2230 0%, var(--bg) 55%);
+    color:var(--ink);
+    font-family:'Archivo',sans-serif;
+    overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+  }
+  .num,.disp{font-family:'Saira Condensed',sans-serif;letter-spacing:.3px}
+  button{font-family:inherit;color:inherit;border:none;cursor:pointer;background:none}
+  .hidden{display:none !important}
+
+  /* ---------- SETUP SCREEN ---------- */
+  #setup{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto;z-index:50}
+  .setup-card{width:min(680px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:26px}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .brand .dot{width:14px;height:34px;background:linear-gradient(var(--accent),#ff9d2e);border-radius:4px;box-shadow:0 0 18px rgba(255,210,74,.5)}
+  .brand h1{font-family:'Saira Condensed';font-weight:800;font-size:30px;margin:0;text-transform:uppercase;letter-spacing:1px}
+  .brand p{margin:0;color:var(--ink-dim);font-size:13px}
+  .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+  .fld label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-dim);margin-bottom:6px;font-weight:600}
+  .fld input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:11px 13px;font-size:15px;font-family:inherit}
+  .fld input:focus{outline:none;border-color:var(--accent)}
+  .roster-help{font-size:12px;color:var(--ink-faint);margin-top:6px}
+  .setup-foot{margin-top:24px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .resume{font-size:13px;color:var(--ink-dim)}
+  .resume b{color:var(--accent)}
+  .btn-primary{background:linear-gradient(var(--accent),#ff9d2e);color:#1a1205;font-weight:700;padding:13px 26px;border-radius:11px;font-size:16px;font-family:'Saira Condensed';letter-spacing:.5px;text-transform:uppercase}
+  .btn-ghost{background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);padding:11px 18px;border-radius:11px;font-weight:600;font-size:13px}
+
+  /* ---------- APP LAYOUT ---------- */
+  #app{display:flex;flex-direction:column;height:100%}
+  header{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-shrink:0}
+  .apptitle{font-family:'Saira Condensed';font-weight:800;font-size:18px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-dim)}
+  .scorebar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:8px 12px;flex-wrap:wrap}
+  .score{display:flex;align-items:center;gap:8px}
+  .teamchip{display:flex;flex-direction:column;align-items:center;min-width:74px;padding:3px 8px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line)}
+  .teamchip .nm{font-size:11px;color:var(--ink-dim);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .teamchip .pts{font-family:'Saira Condensed';font-weight:800;font-size:28px;line-height:1}
+  .teamchip.ours{border-color:rgba(255,210,74,.4)}
+  .ptbtns{display:flex;flex-direction:column;gap:3px}
+  .ptbtns button{width:26px;height:18px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-dim);line-height:1}
+  .ptbtns button:active{background:var(--accent);color:#1a1205}
+  .setbox{display:flex;align-items:center;gap:6px;margin-left:4px}
+  .setbox .lab{font-size:10px;text-transform:uppercase;color:var(--ink-faint);letter-spacing:.6px}
+  .setbox .v{font-family:'Saira Condensed';font-weight:700;font-size:22px;min-width:20px;text-align:center}
+  .setbox button{width:24px;height:24px;border-radius:7px;background:var(--panel-2);border:1px solid var(--line);font-size:14px;color:var(--ink-dim)}
+  .spacer{flex:1}
+  .hbtn{display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-weight:600;font-size:13px;color:var(--ink)}
+  .hbtn.warn:active{background:var(--g0);color:#fff}
+  .hbtn svg{width:16px;height:16px}
+
+  main{flex:1;display:grid;grid-template-columns:minmax(300px,40%) 1fr;gap:12px;padding:12px;overflow:hidden}
+  @media (max-width:840px){
+    main{grid-template-columns:1fr;overflow:auto}
+  }
+
+  /* ---------- COURT ---------- */
+  .court-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;min-height:0}
+  .court-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .court-head .t{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.6px;font-size:15px}
+  .seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{padding:6px 12px;font-size:12px;font-weight:600;color:var(--ink-dim)}
+  .seg button.on{background:var(--accent);color:#1a1205}
+  .court-stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;position:relative;overflow:hidden}
+  svg.court{width:auto;height:100%;max-height:100%;max-width:100%;aspect-ratio:360/600;touch-action:none;display:block;margin:0 auto}
+  /* stacked single-column (portrait / narrow): height isn't bounded, so size by width */
+  @media (max-width:840px){ svg.court{height:auto;width:min(60vh,320px);max-width:90%;} }
+  /* landscape two-column: court fills the column height (court-stage is bounded by the grid) */
+  @media (min-width:841px){ svg.court{height:100%;width:auto;max-width:100%;} }
+  .court-hint{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:11px;color:var(--ink-faint);pointer-events:none}
+  .atk-rotrow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .atk-rotrow .rlab{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--g2);font-weight:700}
+  .atk-rotrow .rotcells{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .atk-rotrow .rotcells button{width:34px;height:32px;font-family:'Saira Condensed';font-weight:700;font-size:16px;color:var(--ink-dim);background:var(--panel-2);border-right:1px solid var(--line)}
+  .atk-rotrow .rotcells button:last-child{border-right:none}
+  .atk-rotrow .rotcells button.on{background:var(--g2);color:#04121f}
+  .atk-rotrow .rotnext{width:36px;height:32px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);font-size:17px;color:var(--ink)}
+  .pending-bar{display:flex;gap:7px;margin-top:8px;align-items:center;flex-wrap:wrap;min-height:38px}
+  .pending-bar .lbl{font-size:12px;color:var(--ink-dim);font-weight:600;margin-right:2px}
+  .ob{padding:8px 12px;border-radius:9px;font-weight:700;font-size:13px;font-family:'Saira Condensed';letter-spacing:.4px;border:1px solid transparent}
+  .ob.kill{background:rgba(39,209,127,.16);color:var(--kill);border-color:rgba(39,209,127,.4)}
+  .ob.err{background:rgba(255,93,93,.16);color:var(--err);border-color:rgba(255,93,93,.4)}
+  .ob.blk{background:rgba(176,107,255,.16);color:var(--blk);border-color:rgba(176,107,255,.4)}
+  .ob.inp{background:rgba(125,141,160,.16);color:var(--inp);border-color:rgba(125,141,160,.4)}
+  .ob:active{transform:scale(.96)}
+  .ob.cancel{margin-left:auto;background:var(--panel-2);color:var(--ink-dim);border-color:var(--line)}
+
+  /* ---------- RIGHT COLUMN ---------- */
+  .rcol{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
+  @media (max-width:840px){.rcol{overflow:visible}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+  .card h3{margin:0 0 9px;font-family:'Saira Condensed';font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.7px;display:flex;align-items:center;gap:8px}
+  .card h3 .sub{font-family:'Archivo';font-weight:500;font-size:11px;color:var(--ink-faint);text-transform:none;letter-spacing:0}
+
+  .row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .miniseg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .miniseg button{padding:7px 14px;font-size:13px;font-weight:700;color:var(--ink-dim)}
+  .miniseg button.on{background:var(--ink);color:#0e1116}
+  .miniseg button.on.ours{background:var(--accent);color:#1a1205}
+  .rotctl{display:flex;align-items:center;gap:6px}
+  .rotctl .rlab{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-faint);font-weight:700}
+  .rotcells{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .rotcells button{width:28px;height:30px;font-family:'Saira Condensed';font-weight:700;font-size:15px;color:var(--ink-dim);background:var(--panel-2);border-right:1px solid var(--line)}
+  .rotcells button:last-child{border-right:none}
+  .rotcells button.on{background:var(--g2);color:#04121f}
+  .rotcells.ours button.on{background:var(--accent);color:#1a1205}
+  .rotnext{width:34px;height:30px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);font-size:16px;color:var(--ink);display:flex;align-items:center;justify-content:center}
+  .rotnext:active{background:var(--accent);color:#1a1205}
+
+  .players{display:flex;gap:6px;flex-wrap:wrap}
+  .grading-target{margin:9px 0 4px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center}
+  .grading-target.ours{background:rgba(255,210,74,.16);color:var(--accent);border:1px solid rgba(255,210,74,.4)}
+  .grading-target.opp{background:rgba(63,169,245,.16);color:var(--g2);border:1px solid rgba(63,169,245,.4)}
+  .pchip{min-width:42px;height:40px;padding:0 8px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);font-family:'Saira Condensed';font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center}
+  .pchip small{font-family:'Archivo';font-size:9px;color:var(--ink-faint);margin-left:3px;font-weight:600}
+  .pchip.on{background:var(--accent);color:#1a1205;border-color:var(--accent)}
+  .pchip.on small{color:#6b4e00}
+
+  .grades{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:4px}
+  .grade{height:74px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Saira Condensed';font-weight:800;border:2px solid transparent;transition:transform .05s}
+  .grade .g{font-size:38px;line-height:.9}
+  .grade .d{font-family:'Archivo';font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-top:2px}
+  .grade:active{transform:scale(.95)}
+  .grade.g3{background:rgba(39,209,127,.14);color:var(--g3);border-color:rgba(39,209,127,.45)}
+  .grade.g2{background:rgba(63,169,245,.14);color:var(--g2);border-color:rgba(63,169,245,.45)}
+  .grade.g1{background:rgba(245,181,61,.14);color:var(--g1);border-color:rgba(245,181,61,.45)}
+  .grade.g0{background:rgba(255,93,93,.14);color:var(--g0);border-color:rgba(255,93,93,.45)}
+
+  .pills{display:flex;gap:6px;flex-wrap:wrap}
+  .pill{padding:8px 13px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink-dim)}
+  .pill.on{background:var(--ink);color:#0e1116;border-color:var(--ink)}
+  .pill input{width:74px;background:transparent;border:none;color:inherit;font-family:inherit;font-size:13px}
+  .pill input:focus{outline:none}
+  .alab{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.6px;width:62px;flex-shrink:0;font-weight:700}
+  .play{padding:9px 15px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);font-family:'Saira Condensed';font-weight:700;font-size:16px;letter-spacing:.4px;color:var(--ink)}
+  .play.on{background:#2d3a4d;border-color:var(--g2);color:#bfe0ff}
+  .play.add{color:var(--ink-faint);font-family:'Archivo';font-size:13px;font-weight:600}
+  .addplay-box{display:inline-flex;gap:5px;align-items:center}
+  .addplay-input{width:96px;padding:8px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--g2);color:var(--ink);font-family:'Archivo';font-size:15px}
+  .addplay-input:focus{outline:none}
+  .play.addplay-go{background:var(--g2);border-color:var(--g2);color:#04121f;font-family:'Archivo';font-size:13px;font-weight:700;padding:9px 14px}
+  .play.addplay-cancel{font-family:'Archivo';font-size:13px;color:var(--ink-faint);padding:9px 12px}
+  .combo-tray{min-height:34px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:7px 10px;margin:0 0 9px}
+  .combo-tray .ph{color:var(--ink-faint);font-size:12px}
+  .combo-tray .step{font-family:'Saira Condensed';font-weight:700;font-size:16px;color:var(--ink-dim)}
+  .combo-tray .step.set{color:var(--accent)}
+  .combo-tray .arrow{color:var(--ink-faint);font-size:12px}
+  .combo-tray .setflag{font-family:'Archivo';font-size:10px;font-weight:700;text-transform:uppercase;color:#1a1205;background:var(--accent);border-radius:5px;padding:1px 5px;margin-left:3px}
+  .setplay-chip{padding:8px 14px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);font-family:'Saira Condensed';font-weight:700;font-size:15px;color:var(--ink-dim)}
+  .setplay-chip.on{background:var(--accent);color:#1a1205;border-color:var(--accent)}
+  #atk-result .ob{font-size:14px;padding:9px 14px}
+
+  /* log + stats */
+  .bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-height:0}
+  @media (max-width:840px){.bottom{grid-template-columns:1fr}}
+  .scroll{overflow:auto;-webkit-overflow-scrolling:touch}
+  .logitem{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;background:var(--panel-2);margin-bottom:6px;font-size:13px}
+  .logitem .tag{font-family:'Saira Condensed';font-weight:700;font-size:11px;padding:2px 7px;border-radius:6px;letter-spacing:.4px}
+  .logitem .txt{flex:1;color:var(--ink-dim)}
+  .logitem .txt b{color:var(--ink)}
+  .logitem .x{width:26px;height:26px;border-radius:7px;background:var(--bg);color:var(--ink-faint);font-size:14px;flex-shrink:0}
+  .logitem .x:active{background:var(--g0);color:#fff}
+  .empty{color:var(--ink-faint);font-size:13px;text-align:center;padding:24px 8px}
+
+  table.stat{width:100%;border-collapse:collapse;font-size:13px}
+  table.stat th{text-align:left;color:var(--ink-faint);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.6px;padding:4px 6px;border-bottom:1px solid var(--line)}
+  table.stat td{padding:6px;border-bottom:1px solid rgba(42,50,61,.5)}
+  .rc-combo{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin:2px 0}
+  .rc-count{font-family:'Saira Condensed';font-weight:700;font-size:12px;color:var(--ink-faint);margin-right:6px;min-width:24px}
+  .rc-play{font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--ink-dim);padding:2px 7px;border-radius:6px;background:var(--panel-2)}
+  .rc-set{color:#bfe0ff;border:1px solid var(--g2)}
+  .rc-kill{background:rgba(39,209,127,.18);color:var(--kill);border:1px solid var(--kill)}
+  .rc-arrow{color:var(--ink-faint);font-size:11px;margin:0 1px}
+  .chart-filters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
+  .chart-filters .cf{padding:5px 11px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--ink-dim)}
+  .chart-filters .cf.on{background:var(--g2);color:#04121f;border-color:var(--g2)}
+  .chart-filters .cf.kill{margin-left:auto}
+  .chart-filters .cf.kill.on{background:var(--kill);color:#04140c;border-color:var(--kill)}
+  .chart-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:5px}
+  .chart-legend .cl{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-dim);font-weight:600}
+  .chart-legend .cl-dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .autoread{background:linear-gradient(180deg,rgba(63,169,245,.10),rgba(63,169,245,.03));border:1px solid rgba(63,169,245,.3);border-radius:11px;padding:11px 13px;margin-bottom:14px}
+  .autoread .ar-h{font-family:'Saira Condensed';font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--g2);margin-bottom:6px}
+  .autoread .ar-l{font-size:13px;color:var(--ink);margin:3px 0;line-height:1.4}
+  table.stat td.n{font-family:'Saira Condensed';font-weight:700;font-size:15px}
+  .avg{font-family:'Saira Condensed';font-weight:800;font-size:15px}
+  .bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%}
+
+  /* ---------- REPORT MODAL ---------- */
+  .modal{position:fixed;inset:0;background:rgba(5,8,12,.72);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+  .modal-card{width:min(860px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .modal-head{position:sticky;top:0;background:var(--panel);display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .modal-head h2{margin:0;font-family:'Saira Condensed';font-weight:800;text-transform:uppercase;font-size:22px;letter-spacing:.6px}
+  .modal-body{padding:20px}
+  .rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.rep-grid{grid-template-columns:1fr}}
+  .rep-sec h4{margin:0 0 8px;font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;font-size:14px;letter-spacing:.6px;color:var(--accent)}
+  .kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .kpi{flex:1;min-width:120px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .kpi .v{font-family:'Saira Condensed';font-weight:800;font-size:28px;line-height:1}
+  .kpi .l{font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+</style>
+</head>
+<body>
+
+<!-- ================= SETUP ================= -->
+<div id="setup">
+  <div class="setup-card">
+    <div class="brand">
+      <div class="dot"></div>
+      <div>
+        <h1>Court Sheet</h1>
+        <p>Live passing &amp; attack tracker — built for the iPad sideline</p>
+      </div>
+    </div>
+    <div class="setup-grid">
+      <div class="fld">
+        <label>Our Team</label>
+        <input id="su-ourname" placeholder="e.g. Lincoln HS" value="Our Team">
+      </div>
+      <div class="fld">
+        <label>Opponent</label>
+        <input id="su-oppname" placeholder="e.g. Visitors" value="Opponent">
+      </div>
+      <div class="fld">
+        <label>Our Roster — jersey #s</label>
+        <input id="su-ourroster" placeholder="1, 4, 7, 10, 12, 15">
+        <div class="roster-help">Comma-separated. Tap a number later to grade their pass.</div>
+      </div>
+      <div class="fld">
+        <label>Opponent Roster — jersey #s</label>
+        <input id="su-opproster" placeholder="2, 3, 5, 8, 11, 14">
+        <div class="roster-help">Optional — leave blank to grade opponent as a team.</div>
+      </div>
+    </div>
+    <div class="setup-foot">
+      <div class="resume" id="resume-line"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-ghost hidden" id="su-resume">Resume last match</button>
+        <button class="btn-primary" id="su-start">Start Tracking</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app" class="hidden">
+  <header>
+    <span class="apptitle">Court Sheet</span>
+    <div class="spacer"></div>
+    <button class="hbtn warn" id="btn-undo" title="Undo last entry">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+      Undo
+    </button>
+    <button class="hbtn" id="btn-report">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>
+      Report
+    </button>
+    <button class="hbtn" id="btn-menu">⋯</button>
+  </header>
+
+  <main>
+    <!-- COURT -->
+    <div class="court-wrap">
+      <div class="court-head">
+        <span class="t">Attack Map <span id="atk-which-head" style="font-family:'Archivo';font-weight:600;font-size:11px;color:var(--g2);text-transform:none;letter-spacing:0"></span></span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="seg" id="atk-mode">
+            <button data-mode="zones" class="on">Zones</button>
+            <button data-mode="draw">Draw</button>
+          </div>
+        </div>
+      </div>
+      <div class="atk-rotrow" id="atk-rotctl"></div>
+      <div class="court-stage">
+        <svg class="court" id="court" viewBox="0 0 360 600" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="court-hint" id="court-hint">Press and drag to draw the attack path</div>
+      </div>
+      <div class="pending-bar" id="pending-bar"></div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="rcol">
+      <!-- SCORE + SET -->
+      <div class="scorebar">
+        <div class="score">
+          <div class="teamchip ours"><span class="nm" id="h-ourname">Our</span><span class="pts" id="h-ourpts">0</span></div>
+          <div class="ptbtns"><button data-pt="ours+">+</button><button data-pt="ours-">−</button></div>
+          <div class="teamchip"><span class="nm" id="h-oppname">Opp</span><span class="pts" id="h-opppts">0</span></div>
+          <div class="ptbtns"><button data-pt="opp+">+</button><button data-pt="opp-">−</button></div>
+        </div>
+        <div class="setbox">
+          <span class="lab">Set</span>
+          <button id="set-down">−</button>
+          <span class="v" id="h-set">1</span>
+          <button id="set-up">+</button>
+        </div>
+      </div>
+      <!-- PASSING -->
+      <div class="card">
+        <h3>Passing <span class="sub">3 = perfect · 0 = ace / shank</span></h3>
+        <div class="row" style="justify-content:space-between">
+          <div class="miniseg" id="pass-team">
+            <button data-team="ours" class="on ours">Our Passers</button>
+            <button data-team="opp">Opponent</button>
+          </div>
+          <div class="rotctl" id="rotctl"></div>
+        </div>
+        <div class="players" id="pass-players"></div>
+        <div class="grading-target" id="grading-target"></div>
+        <div class="grades">
+          <button class="grade g3" data-grade="3"><span class="g">3</span><span class="d">Perfect</span></button>
+          <button class="grade g2" data-grade="2"><span class="g">2</span><span class="d">Good</span></button>
+          <button class="grade g1" data-grade="1"><span class="g">1</span><span class="d">Poor</span></button>
+          <button class="grade g0" data-grade="0"><span class="g">0</span><span class="d">Ace / Shank</span></button>
+        </div>
+      </div>
+
+      <!-- ATTACK / PLAY COMBINATION -->
+      <div class="card">
+        <h3>Play &amp; Attack <span class="sub" id="atk-which">Opp attack</span></h3>
+        <div class="row" style="margin-bottom:6px">
+          <span class="alab">Plays run</span>
+          <div class="pills" id="plays"></div>
+        </div>
+        <div class="combo-tray" id="combo-tray"></div>
+        <div class="row">
+          <span class="alab">Was set</span>
+          <div class="pills" id="setplay"></div>
+        </div>
+        <div class="row">
+          <span class="alab">Swing</span>
+          <div class="pills" id="atktype"></div>
+        </div>
+        <div class="row" style="margin-bottom:0">
+          <span class="alab">Result</span>
+          <div class="pills" id="atk-result">
+            <button class="ob kill" data-out="Kill">Kill</button>
+            <button class="ob err" data-out="Error">Error</button>
+            <button class="ob blk" data-out="Blocked">Blocked</button>
+            <button class="ob inp" data-out="In play">In&nbsp;Play</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOG + STATS -->
+      <div class="bottom">
+        <div class="card" style="display:flex;flex-direction:column;min-height:0">
+          <h3>Live Log <span class="sub" id="log-count"></span></h3>
+          <div class="scroll" id="log" style="flex:1"></div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;min-height:0">
+          <h3>Live Stats</h3>
+          <div class="scroll" id="stats" style="flex:1"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ================= REPORT ================= -->
+<div class="modal hidden" id="report">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="rep-title">Match Report</h2>
+      <div style="display:flex;gap:8px">
+        <button class="hbtn" id="rep-csv">⬇ CSV</button>
+        <button class="hbtn" id="rep-print">⎙ Print</button>
+        <button class="hbtn" id="rep-close">✕ Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="rep-body"></div>
+  </div>
+</div>
+
+<!-- ================= MENU ================= -->
+<div class="modal hidden" id="menu">
+  <div class="modal-card" style="width:min(420px,100%)">
+    <div class="modal-head"><h2>Menu</h2><button class="hbtn" id="menu-close">✕</button></div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:10px">
+      <button class="hbtn" id="menu-edit" style="justify-content:center;padding:14px">Edit teams &amp; rosters</button>
+      <button class="hbtn" id="menu-csv" style="justify-content:center;padding:14px">Export CSV of all entries</button>
+      <button class="hbtn warn" id="menu-new" style="justify-content:center;padding:14px">Start a brand-new match (clears data)</button>
+      <p style="font-size:12px;color:var(--ink-faint);text-align:center;margin:4px 0 0">Your match auto-saves on this device. Closing the tab is safe; refreshing keeps your data.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ STORAGE (persistent, with in-memory fallback) ============ */
+const mem = {};
+const Store = {
+  async get(k){
+    // 1) Claude artifact storage (when run inside the Claude app)
+    try{ if(window.storage&&window.storage.get){ const r=await window.storage.get(k); return r?JSON.parse(r.value):null; } }catch(e){}
+    // 2) on-device localStorage (when saved & run standalone on the iPad)
+    try{ const v=localStorage.getItem(k); if(v!=null) return JSON.parse(v); }catch(e){}
+    // 3) in-memory fallback (last resort, this session only)
+    return (k in mem)?mem[k]:null;
+  },
+  async set(k,v){
+    mem[k]=v;
+    try{ if(window.storage&&window.storage.set){ await window.storage.set(k,JSON.stringify(v)); } }catch(e){}
+    try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){}
+  },
+};
+const KEY='courtsheet_match_v1';
+
+/* ============ STATE ============ */
+let S = null;
+const TYPES = ['Hard','Tip','Roll','Off-spd'];
+const DEFAULT_PLAYS = ['Go','Jet','3','Rip','2','1','Bang','Push','Bic','D','B'];
+
+function freshState(meta){
+  return {
+    meta, setNo:1, ourPts:0, oppPts:0, setScores:{},
+    atkTeam:'opp', passTeam:'ours', ourRot:1, oppRot:1, atkMode:'zones', chartRot:'all', chartKillsOnly:false,
+    selPasser:null, selType:'Hard',
+    combo:[], setPlay:null,
+    pending:null, events:[], seq:1
+  };
+}
+function uid(){ return 'e'+(S.seq++); }
+
+/* ============ SETUP ============ */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+async function boot(){
+  const saved = await Store.get(KEY);
+  if(saved && saved.events){
+    $('#resume-line').innerHTML = `Last match: <b>${esc(saved.meta.ourName)}</b> vs ${esc(saved.meta.oppName)} — ${saved.events.length} entries`;
+    $('#su-resume').classList.remove('hidden');
+    $('#su-resume').onclick = ()=>{ S=saved; startApp(); };
+    // prefill setup with last names/rosters for convenience
+    $('#su-ourname').value=saved.meta.ourName; $('#su-oppname').value=saved.meta.oppName;
+    $('#su-ourroster').value=saved.meta.ourRoster.join(', ');
+    $('#su-opproster').value=saved.meta.oppRoster.join(', ');
+  }
+}
+function parseRoster(str){
+  return str.split(/[,\s]+/).map(x=>x.trim()).filter(Boolean);
+}
+$('#su-start').onclick = ()=>{
+  const meta = {
+    ourName: $('#su-ourname').value.trim()||'Our Team',
+    oppName: $('#su-oppname').value.trim()||'Opponent',
+    ourRoster: parseRoster($('#su-ourroster').value),
+    oppRoster: parseRoster($('#su-opproster').value),
+    plays: DEFAULT_PLAYS.slice(),
+    date: new Date().toISOString().slice(0,10)
+  };
+  if(meta.ourRoster.length===0) meta.ourRoster=['1','2','3','4','5','6'];
+  S = freshState(meta);
+  S.selPasser = meta.ourRoster[0];
+  startApp();
+};
+
+function startApp(){
+  if(S.ourRot==null) S.ourRot=1;
+  if(S.oppRot==null) S.oppRot=1;
+  if(!S.atkMode) S.atkMode='zones';
+  S.atkTeam='opp';   // attacks are opponent-only in this build
+  if(!S.setScores) S.setScores={};
+  if(!S.meta.plays) S.meta.plays=DEFAULT_PLAYS.slice();
+  else DEFAULT_PLAYS.forEach(p=>{ if(!S.meta.plays.includes(p)) S.meta.plays.push(p); });
+  if(!S.combo) S.combo=[];
+  if(S.setPlay===undefined) S.setPlay=null;
+  if(!S.selPasser) S.selPasser = (S.passTeam==='ours'?S.meta.ourRoster:S.meta.oppRoster)[0]||null;
+  $('#setup').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  drawCourt();
+  renderAll();
+  save();
+}
+
+/* ============ SAVE ============ */
+let saveTimer=null;
+function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>Store.set(KEY,S),150); }
+
+/* ============ COURT GEOMETRY ============
+   viewBox 360x600. Net at y=300. Opp half on top (0-300), our half bottom (300-600).
+   Margins: court inset 30px each side. */
+const CW=360, CH=600, MX=30, NET=300;
+const X0=MX, X1=CW-MX, Y0=MX, Y1=CH-MX; // playing rect
+// ----- ZONES: 3 columns (L/M/R) x 2 rows per half (Front=net→3m, Back=3m→endline) -----
+const T3T=NET-(NET-Y0)/3, T3B=NET+(Y1-NET)/3; // 3m lines top & bottom
+const COLX=[[X0,X0+100],[X0+100,X0+200],[X0+200,X1]];
+const COLN=['L','M','R'];
+const ZONES=(()=>{
+  const z=[];
+  const add=(side,row,y0,y1)=>COLX.forEach((cx,i)=>z.push({
+    id:`${side}-${COLN[i]}-${row}`, side, col:COLN[i], row,
+    x0:cx[0], x1:cx[1], y0, y1, cx:(cx[0]+cx[1])/2, cy:(y0+y1)/2 }));
+  add('T','B',Y0,T3T); add('T','F',T3T,NET);   // top half (defender when our/opp attacks from bottom)
+  add('B','F',NET,T3B); add('B','B',T3B,Y1);    // bottom half (attacker origin)
+  return z;
+})();
+function zoneAt(x,y){ return ZONES.find(z=>x>=z.x0&&x<z.x1&&y>=z.y0&&y<z.y1)||null; }
+function zoneLabel(id){
+  if(!id) return '';
+  const [,c,r]=id.split('-');
+  return `${c} ${r==='F'?'short':'deep'}`;
+}
+function drawCourt(){
+  const c=$('#court');
+  const line='var(--court-line)';
+  c.innerHTML=`
+    <rect x="0" y="0" width="${CW}" height="${CH}" rx="14" fill="var(--bg)"/>
+    <rect x="${X0-8}" y="${Y0-8}" width="${X1-X0+16}" height="${NET-Y0+8}" fill="var(--court-back)"/>
+    <rect x="${X0-8}" y="${NET}" width="${X1-X0+16}" height="${Y1-NET+8}" fill="var(--court)"/>
+    <!-- boundary -->
+    <rect x="${X0}" y="${Y0}" width="${X1-X0}" height="${Y1-Y0}" fill="none" stroke="${line}" stroke-width="3"/>
+    <!-- net -->
+    <line x1="${X0-8}" y1="${NET}" x2="${X1+8}" y2="${NET}" stroke="#fff" stroke-width="4" stroke-dasharray="2 4"/>
+    <line x1="${X0-8}" y1="${NET}" x2="${X1+8}" y2="${NET}" stroke="#0e1116" stroke-width="1.5"/>
+    <!-- 3m attack lines (3m of 9m half = 1/3 from net) -->
+    <line x1="${X0}" y1="${NET-(NET-Y0)/3}" x2="${X1}" y2="${NET-(NET-Y0)/3}" stroke="${line}" stroke-width="2" opacity=".7"/>
+    <line x1="${X0}" y1="${NET+(Y1-NET)/3}" x2="${X1}" y2="${NET+(Y1-NET)/3}" stroke="${line}" stroke-width="2" opacity=".7"/>
+    <!-- zone column dividers -->
+    <line x1="${X0+100}" y1="${Y0}" x2="${X0+100}" y2="${Y1}" stroke="${line}" stroke-width="1.2" opacity=".35"/>
+    <line x1="${X0+200}" y1="${Y0}" x2="${X0+200}" y2="${Y1}" stroke="${line}" stroke-width="1.2" opacity=".35"/>
+    <!-- labels -->
+    <text x="${CW/2}" y="21" text-anchor="middle" fill="var(--ink-faint)" font-size="17" font-weight="700" font-family="Saira Condensed" id="lab-top">OPP</text>
+    <text x="${CW/2}" y="${CH-7}" text-anchor="middle" fill="var(--accent)" font-size="17" font-weight="700" font-family="Saira Condensed" id="lab-bot">OURS</text>
+    <g id="atk-layer"></g>
+    <g id="pending-layer"></g>
+  `;
+  c.addEventListener('pointerdown', onCourtDown);
+  c.addEventListener('pointermove', onCourtMove);
+  c.addEventListener('pointerup', onCourtUp);
+  c.addEventListener('pointercancel', onCourtUp);
+}
+function courtPoint(evt){
+  const svg=$('#court');
+  let x,y;
+  const ctm = svg.getScreenCTM && svg.getScreenCTM();
+  if(ctm){
+    const pt=svg.createSVGPoint();
+    pt.x=evt.clientX; pt.y=evt.clientY;
+    const lp=pt.matrixTransform(ctm.inverse());
+    x=lp.x; y=lp.y;
+  } else {
+    const r=svg.getBoundingClientRect();
+    x=(evt.clientX-r.left)/r.width*CW;
+    y=(evt.clientY-r.top)/r.height*CH;
+  }
+  return {x:Math.max(4,Math.min(CW-4,x)), y:Math.max(4,Math.min(CH-4,y))};
+}
+let drawId=null;
+function onCourtDown(evt){
+  evt.preventDefault();
+  if(S.atkMode==='zones'){ return zoneTap(evt); }
+  const p=courtPoint(evt);
+  S.pending={path:[{x:p.x,y:p.y}], drawing:true, mode:'draw'};
+  drawId=evt.pointerId;
+  try{ $('#court').setPointerCapture(evt.pointerId); }catch(e){}
+  renderPending();
+}
+function zoneTap(evt){
+  const p=courtPoint(evt);
+  const z=zoneAt(p.x,p.y); if(!z) return;
+  if(!S.pending||S.pending.mode!=='zones') S.pending={oZone:null,lZone:null,path:[],mode:'zones'};
+  if(z.side==='T'){ S.pending.oZone=(S.pending.oZone&&S.pending.oZone.id===z.id)?null:z; }
+  else { S.pending.lZone=(S.pending.lZone&&S.pending.lZone.id===z.id)?null:z; }
+  rebuildZonePath();
+  renderPending();
+}
+function rebuildZonePath(){
+  const pts=[];
+  if(S.pending.oZone) pts.push({x:S.pending.oZone.cx,y:S.pending.oZone.cy});
+  if(S.pending.lZone) pts.push({x:S.pending.lZone.cx,y:S.pending.lZone.cy});
+  S.pending.path=pts;
+}
+function onCourtMove(evt){
+  if(!S.pending||!S.pending.drawing) return;
+  if(drawId!=null && evt.pointerId!==drawId) return;
+  evt.preventDefault();
+  const p=courtPoint(evt);
+  const path=S.pending.path, last=path[path.length-1];
+  if(Math.hypot(p.x-last.x,p.y-last.y)>=5){ path.push({x:p.x,y:p.y}); renderPending(); }
+}
+function onCourtUp(evt){
+  if(!S.pending||!S.pending.drawing) return;
+  if(drawId!=null && evt.pointerId!==drawId) return;
+  S.pending.drawing=false;
+  try{ $('#court').releasePointerCapture(evt.pointerId); }catch(e){}
+  drawId=null;
+  renderPending();
+}
+function setCourtHint(){
+  const h=$('#court-hint'); if(!h) return;
+  h.textContent = S.atkMode==='zones'
+    ? 'Tap where it lands (bottom half) · optional: tap origin (top)'
+    : 'Press and drag to draw the attack path';
+  h.style.opacity = S.pending ? 0 : 1;
+}
+function renderPending(){
+  const layer=$('#pending-layer'); const bar=$('#pending-bar');
+  if(!layer) return;
+  if(!S.pending){ layer.innerHTML=''; bar.innerHTML=''; setCourtHint(); return; }
+  $('#court-hint').style.opacity=0;
+  const pcol = S.atkTeam==='ours' ? 'var(--accent)' : 'var(--g2)';
+  const pts=S.pending.path;
+
+  if(S.pending.mode==='zones'){
+    const hi=z=>`<rect x="${z.x0}" y="${z.y0}" width="${z.x1-z.x0}" height="${z.y1-z.y0}" rx="6" fill="${pcol}" opacity=".18" stroke="${pcol}" stroke-width="2"/>`;
+    let svg='';
+    if(S.pending.oZone) svg+=hi(S.pending.oZone);
+    if(S.pending.lZone) svg+=hi(S.pending.lZone);
+    svg+=pathSvg(pts,pcol,1,true);
+    layer.innerHTML=svg;
+    const ready = !!(S.pending.lZone||S.pending.oZone);
+    if(S.pending.lZone){
+      bar.innerHTML = `<span class="lbl">✓ Lands <b style="color:${pcol}">${zoneLabel(S.pending.lZone.id)}</b>${S.pending.oZone?` from <b style="color:${pcol}">${zoneLabel(S.pending.oZone.id)}</b>`:''} — pick result →</span>
+        <button class="ob cancel" data-out="_cancel">Clear</button>`;
+    } else {
+      bar.innerHTML = `<span class="lbl">Origin set — now tap where it lands (bottom half)</span>
+        <button class="ob cancel" data-out="_cancel">Clear</button>`;
+    }
+    return;
+  }
+
+  // draw mode
+  layer.innerHTML = pathSvg(pts,pcol,1,true);
+  const drawn = pts.length>=2;
+  if(S.pending.drawing){
+    bar.innerHTML = `<span class="lbl">Drawing… lift your finger to finish</span>`;
+  } else if(drawn){
+    bar.innerHTML = `<span class="lbl">✓ Line drawn — pick the result in the panel →</span>
+      <button class="ob cancel" data-out="_cancel">Clear line</button>`;
+  } else {
+    bar.innerHTML = `<span class="lbl">Press &amp; drag on the court to trace the attack…</span>
+      <button class="ob cancel" data-out="_cancel">Clear</button>`;
+  }
+}
+function dot(x,y,col,filled){
+  return `<circle cx="${x}" cy="${y}" r="6" fill="${filled?col:'var(--bg)'}" stroke="${col}" stroke-width="2.5"/>`;
+}
+function arrow(x1,y1,x2,y2,col){
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`;
+}
+function pathSvg(pts,col,op,dotStart){
+  if(!pts||pts.length===0) return '';
+  if(pts.length===1) return dot(pts[0].x,pts[0].y,col,true);
+  if(op==null) op=0.9;
+  const d='M '+pts.map(p=>`${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ');
+  const n=pts.length, a=pts[n-1];
+  let b=pts[n-2];
+  for(let i=n-2;i>=0;i--){ if(Math.hypot(a.x-pts[i].x,a.y-pts[i].y)>3){ b=pts[i]; break; } }
+  const ang=Math.atan2(a.y-b.y,a.x-b.x), L=14, sp=0.5;
+  const h1x=(a.x-L*Math.cos(ang-sp)).toFixed(1), h1y=(a.y-L*Math.sin(ang-sp)).toFixed(1);
+  const h2x=(a.x-L*Math.cos(ang+sp)).toFixed(1), h2y=(a.y-L*Math.sin(ang+sp)).toFixed(1);
+  return `<g opacity="${op}">
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="${a.x}" y1="${a.y}" x2="${h1x}" y2="${h1y}" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>
+    <line x1="${a.x}" y1="${a.y}" x2="${h2x}" y2="${h2y}" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>
+    ${dotStart?`<circle cx="${pts[0].x}" cy="${pts[0].y}" r="4" fill="${col}"/>`:''}
+  </g>`;
+}
+function finalizeAttack(outcome){
+  if(outcome==='_cancel'){ S.pending=null; renderPending(); return; }
+  const path = (S.pending && S.pending.path && S.pending.path.length>=1) ? S.pending.path.slice() : null;
+  const a = path?path[0]:null, b = path?path[path.length-1]:null;
+  const setPlay = S.setPlay || (S.combo.length===1 ? S.combo[0] : null);
+  const ev={ id:uid(), kind:'attack', team:S.atkTeam,
+             combo:S.combo.slice(), setPlay, setTo:setPlay, type:S.selType,
+             outcome, path, ox:a?a.x:null, oy:a?a.y:null, dx:b?b.x:null, dy:b?b.y:null,
+             oZone:(S.pending&&S.pending.oZone)?S.pending.oZone.id:null,
+             lZone:(S.pending&&S.pending.lZone)?S.pending.lZone.id:null,
+             rot:(S.atkTeam==='ours'?S.ourRot:S.oppRot), set:S.setNo, ts:Date.now() };
+  S.events.push(ev);
+  // auto-score
+  if(outcome==='Kill'){ S.atkTeam==='ours'?S.ourPts++:S.oppPts++; }
+  else if(outcome==='Error'||outcome==='Blocked'){ S.atkTeam==='ours'?S.oppPts++:S.ourPts++; }
+  S.pending=null; S.combo=[]; S.setPlay=null;   // clear for next rally (swing stays sticky)
+  renderAll(); save();
+}
+
+/* ============ RENDER ============ */
+function renderAll(){ syncToggles(); renderHeader(); renderRot(); renderPassers(); renderTagging(); renderAttacks(); renderPending(); renderLog(); renderStats(); }
+function syncToggles(){
+  $$('#atk-mode button').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.atkMode));
+}
+
+function renderRot(){
+  const wrap=$('#rotctl');
+  if(wrap){
+    const isOurs = S.passTeam==='ours';
+    const cur = isOurs?S.ourRot:S.oppRot;
+    let cells='';
+    for(let i=1;i<=6;i++) cells+=`<button data-rot="${i}" class="${i===cur?'on':''}">${i}</button>`;
+    wrap.innerHTML = `<span class="rlab">${isOurs?'Our':'Opp'} rot</span>
+      <div class="rotcells ${isOurs?'ours':''}">${cells}</div>
+      <button class="rotnext" data-rotnext="1" title="Next rotation">⟳</button>`;
+  }
+  // attack map rotation = opponent's rotation (their pass + attack share a rotation)
+  const aw=$('#atk-rotctl');
+  if(aw){
+    let cells='';
+    for(let i=1;i<=6;i++) cells+=`<button data-arot="${i}" class="${i===S.oppRot?'on':''}">${i}</button>`;
+    aw.innerHTML = `<span class="rlab">${esc(S.meta.oppName)} rotation</span>
+      <div class="rotcells">${cells}</div>
+      <button class="rotnext" data-arotnext="1" title="Opponent rotated">⟳</button>`;
+  }
+}
+
+function renderHeader(){
+  $('#h-ourname').textContent=S.meta.ourName;
+  $('#h-oppname').textContent=S.meta.oppName;
+  $('#h-ourpts').textContent=S.ourPts;
+  $('#h-opppts').textContent=S.oppPts;
+  $('#h-set').textContent=S.setNo;
+  const lt=$('#lab-top'), lb=$('#lab-bot');
+  if(lt&&lb){
+    // opponent attacks from the TOP toward our side at the BOTTOM
+    lt.textContent=S.meta.oppName.toUpperCase(); lt.setAttribute('fill','var(--g2)');
+    lb.textContent=S.meta.ourName.toUpperCase(); lb.setAttribute('fill','var(--ink-faint)');
+  }
+}
+
+function renderPassers(){
+  const wrap=$('#pass-players');
+  const roster = S.passTeam==='ours'?S.meta.ourRoster:S.meta.oppRoster;
+  $$('#pass-team button').forEach(b=>b.classList.toggle('on',b.dataset.team===S.passTeam));
+  // grading-target banner
+  const gt=$('#grading-target');
+  if(gt){
+    const name = S.passTeam==='ours'?S.meta.ourName:S.meta.oppName;
+    gt.className='grading-target '+(S.passTeam==='ours'?'ours':'opp');
+    gt.textContent=`Grading ${name} ${S.passTeam==='ours'?'passers':'(opponent)'}`;
+  }
+  if(roster.length===0){
+    wrap.innerHTML=`<div style="color:var(--ink-faint);font-size:13px;padding:6px">No opponent roster — grades log as “${esc(S.meta.oppName)} (team)”.</div>`;
+    S.selPasser='TEAM';
+    return;
+  }
+  if(!roster.includes(S.selPasser)) S.selPasser=roster[0];
+  wrap.innerHTML = roster.map(n=>
+    `<button class="pchip ${n===S.selPasser?'on':''}" data-p="${esc(n)}">#${esc(n)}</button>`).join('');
+}
+
+function renderTagging(){
+  // which team is attacking, for the header hint
+  const which=$('#atk-which');
+  if(which) which.textContent = S.meta.oppName+' attack';
+  const wh2=$('#atk-which-head');
+  if(wh2) wh2.textContent = '· tracking '+S.meta.oppName;
+
+  // play buttons (toggle into combo) + add custom
+  $('#plays').innerHTML = S.meta.plays.map(p=>
+    `<button class="play ${S.combo.includes(p)?'on':''}" data-play="${esc(p)}">${esc(p)}</button>`).join('')
+    + (S.addingPlay
+        ? `<span class="addplay-box"><input id="addplay-input" class="addplay-input" type="text" placeholder="Name…" autocomplete="off" maxlength="12">
+             <button class="play addplay-go" data-addplay-go="1">Add</button>
+             <button class="play addplay-cancel" data-addplay-cancel="1">✕</button></span>`
+        : `<button class="play add" data-addplay="1">+ Add</button>`);
+  if(S.addingPlay){
+    const inp=$('#addplay-input');
+    if(inp){ inp.focus();
+      inp.onkeydown=(ev)=>{ if(ev.key==='Enter'){ commitAddPlay(inp.value); } else if(ev.key==='Escape'){ S.addingPlay=false; renderTagging(); } };
+    }
+  }
+
+  // combo tray
+  const tray=$('#combo-tray');
+  if(S.combo.length===0){
+    tray.innerHTML=`<span class="ph">Tap the plays the offense ran (e.g. Go · 3 · Jet)…</span>`;
+  } else {
+    tray.innerHTML = S.combo.map((p,i)=>{
+      const isSet = p===S.setPlay;
+      return `${i>0?'<span class="arrow">·</span>':''}<span class="step ${isSet?'set':''}">${esc(p)}${isSet?'<span class="setflag">set</span>':''}</span>`;
+    }).join('');
+  }
+
+  // "was set" chips — only the plays in the current combo
+  const sp=$('#setplay');
+  if(S.combo.length===0){
+    sp.innerHTML=`<span style="font-size:12px;color:var(--ink-faint)">— pick plays first —</span>`;
+  } else {
+    sp.innerHTML = S.combo.map(p=>
+      `<button class="setplay-chip ${p===S.setPlay?'on':''}" data-setplay="${esc(p)}">${esc(p)}</button>`).join('');
+  }
+
+  $('#atktype').innerHTML = TYPES.map(x=>
+    `<button class="pill ${x===S.selType?'on':''}" data-type="${x}">${x}</button>`).join('');
+}
+
+function renderAttacks(){
+  const layer=$('#atk-layer'); if(!layer) return;
+  layer.innerHTML = S.events.filter(e=>e.kind==='attack'&&e.set===S.setNo&&(e.path||e.dx!=null)).map(e=>{
+    const col = e.outcome==='Kill'?'var(--kill)':e.outcome==='Error'?'var(--err)':e.outcome==='Blocked'?'var(--blk)':'var(--inp)';
+    const op = e.outcome==='In play'?0.45:0.85;
+    if(e.path && e.path.length>=1) return pathSvg(e.path,col,op,true);
+    return `<g opacity="${op}">${arrow(e.ox,e.oy,e.dx,e.dy,col)}<circle cx="${e.ox}" cy="${e.oy}" r="3.5" fill="${col}"/></g>`;
+  }).join('');
+}
+
+function renderLog(){
+  const log=$('#log');
+  const evs=[...S.events].reverse();
+  $('#log-count').textContent = S.events.length?`${S.events.length} entries`:'';
+  if(evs.length===0){ log.innerHTML=`<div class="empty">No entries yet.<br>Grade a pass or map an attack to begin.</div>`; return; }
+  log.innerHTML = evs.slice(0,80).map(e=>{
+    if(e.kind==='pass'){
+      const col=['var(--g0)','var(--g1)','var(--g2)','var(--g3)'][e.grade];
+      const who = e.player==='TEAM'?'Opp':('#'+e.player);
+      const tm = e.team==='ours'?S.meta.ourName:S.meta.oppName;
+      return `<div class="logitem"><span class="tag" style="background:${col}22;color:${col}">PASS ${e.grade}</span>
+        <span class="txt"><b>${esc(who)}</b> · ${esc(tm)} · S${e.set}</span>
+        <button class="x" data-del="${e.id}">✕</button></div>`;
+    } else {
+      const col=e.outcome==='Kill'?'var(--kill)':e.outcome==='Error'?'var(--err)':e.outcome==='Blocked'?'var(--blk)':'var(--inp)';
+      const tm = e.team==='ours'?S.meta.ourName:S.meta.oppName;
+      const comboStr = (e.combo&&e.combo.length)
+        ? e.combo.map(p=>p===e.setPlay?`<b style="color:var(--accent)">${esc(p)}</b>`:esc(p)).join('·')
+        : (e.setPlay?esc(e.setPlay):'attack');
+      return `<div class="logitem"><span class="tag" style="background:${col}22;color:${col}">${e.outcome.toUpperCase()}</span>
+        <span class="txt"><b>${esc(tm)}</b> · ${comboStr} · ${esc(e.type)} · R${e.rot||'?'}</span>
+        <button class="x" data-del="${e.id}">✕</button></div>`;
+    }
+  }).join('');
+}
+
+function passStats(team){
+  const m={};
+  S.events.filter(e=>e.kind==='pass'&&e.team===team).forEach(e=>{
+    const k=e.player; (m[k]=m[k]||{sum:0,n:0,d:[0,0,0,0]});
+    m[k].sum+=e.grade; m[k].n++; m[k].d[e.grade]++;
+  });
+  return m;
+}
+function rotStats(team){
+  const r={}; for(let i=1;i<=6;i++) r[i]={sum:0,n:0};
+  S.events.filter(e=>e.kind==='pass'&&e.team===team&&e.rot).forEach(e=>{ r[e.rot].sum+=e.grade; r[e.rot].n++; });
+  return r;
+}
+function rotStrip(title,team,col){
+  const r=rotStats(team);
+  const total=Object.values(r).reduce((a,o)=>a+o.n,0);
+  if(!total) return '';
+  let cells='';
+  for(let i=1;i<=6;i++){
+    const o=r[i]; const avg=o.n?(o.sum/o.n):null;
+    const c=avg==null?'var(--ink-faint)':avgColor(avg);
+    cells+=`<div style="flex:1;text-align:center;padding:6px 2px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px">
+      <div style="font-size:9px;color:var(--ink-faint);font-weight:700;letter-spacing:.4px">R${i}</div>
+      <div class="avg" style="color:${c};font-size:17px">${avg==null?'–':avg.toFixed(2)}</div>
+      <div style="font-size:9px;color:var(--ink-faint)">${o.n||''}</div></div>`;
+  }
+  return `<div style="margin-bottom:14px">
+    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:${col};text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">${title}</div>
+    <div style="display:flex;gap:5px">${cells}</div></div>`;
+}
+function autoRead(){
+  const oppAtk=S.events.filter(e=>e.kind==='attack'&&e.team==='opp'&&e.rot);
+  const lines=[];
+  // Opponent attack efficiency by rotation: where are they most/least dangerous?
+  if(oppAtk.length>=4){
+    const R={};
+    oppAtk.forEach(e=>{ const d=R[e.rot]=R[e.rot]||{n:0,k:0,e:0}; d.n++; if(e.outcome==='Kill')d.k++; if(['Error','Blocked'].includes(e.outcome))d.e++; });
+    const rows=Object.entries(R).filter(([r,d])=>d.n>=2).map(([r,d])=>({r,eff:(d.k-d.e)/d.n,n:d.n,k:d.k}));
+    if(rows.length>=2){
+      rows.sort((a,b)=>b.eff-a.eff);
+      const best=rows[0], worst=rows[rows.length-1]; // best = most dangerous TO us
+      lines.push(`<b style="color:var(--err)">Most dangerous:</b> their R${best.r} (${best.eff.toFixed(2)} eff, ${best.k}k/${best.n})`);
+      lines.push(`<b style="color:var(--kill)">Attack here:</b> their R${worst.r} (${worst.eff.toFixed(2)} eff)`);
+    }
+  }
+  // Our passing by rotation: weakest serve-receive rotation
+  const ourPass=S.events.filter(e=>e.kind==='pass'&&e.team==='ours'&&e.rot);
+  if(ourPass.length>=6){
+    const R={}; ourPass.forEach(e=>{ const d=R[e.rot]=R[e.rot]||{sum:0,n:0}; d.sum+=e.grade; d.n++; });
+    const rows=Object.entries(R).filter(([r,d])=>d.n>=2).map(([r,d])=>({r,avg:d.sum/d.n,n:d.n}));
+    if(rows.length>=2){
+      rows.sort((a,b)=>a.avg-b.avg);
+      const weak=rows[0];
+      if(weak.avg<2.2) lines.push(`<b style="color:var(--g1)">Watch our passing:</b> R${weak.r} weakest (${weak.avg.toFixed(2)} avg)`);
+    }
+  }
+  if(!lines.length) return '';
+  return `<div class="autoread">
+    <div class="ar-h">Quick Read</div>
+    ${lines.map(l=>`<div class="ar-l">${l}</div>`).join('')}
+  </div>`;
+}
+function renderStats(){
+  const box=$('#stats');
+  const our=passStats('ours'); const opp=passStats('opp');
+  let html='';
+  html+=autoRead();
+  html+=passTable(S.meta.ourName+' Passing',our,'var(--accent)');
+  html+=rotStrip(S.meta.ourName+' Pass by Rotation','ours','var(--accent)');
+  // opponent passing + attacking (we do not track our own attack)
+  html+=passTable(S.meta.oppName+' Passing',opp,'var(--g2)');
+  html+=rotStrip(S.meta.oppName+' Pass by Rotation','opp','var(--g2)');
+  html+=atkTable(S.meta.oppName+' Attack',S.events.filter(e=>e.kind==='attack'&&e.team==='opp'));
+  html+=atkByRotTable(S.meta.oppName+' Attack by Rotation',S.events.filter(e=>e.kind==='attack'&&e.team==='opp'));
+  html+=shotChart(S.events.filter(e=>e.kind==='attack'&&e.team==='opp'));
+  box.innerHTML=html||`<div class="empty">Stats appear as you log.</div>`;
+}
+
+// distinct colors for plays (set call) on the shot chart
+const PLAY_COLORS=['#ffd24a','#3fa9f5','#27d17f','#ff7ad1','#b06bff','#ff9d2e','#5ce0d8','#f5b53d','#7da0ff','#ff5d5d','#9ad84a'];
+function playColor(name){
+  const i=S.meta.plays.indexOf(name);
+  if(i>=0) return PLAY_COLORS[i%PLAY_COLORS.length];
+  return 'var(--ink-dim)';
+}
+function shotChart(allOpp){
+  if(!allOpp.length) return '';
+  // landings live on OUR side = bottom half (side 'B'). Use dx/dy where available.
+  const withLand = allOpp.filter(e=>e.lZone||e.dy!=null);
+  if(!withLand.length) return `<div style="margin-bottom:14px"><div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--g2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${esc(S.meta.oppName)} Shot Chart</div><p style="font-size:12px;color:var(--ink-faint)">Tap a landing zone when logging attacks to build the chart.</p></div>`;
+
+  // rotation filter buttons
+  const rotsPresent=[...new Set(withLand.map(e=>e.rot).filter(Boolean))].sort((a,b)=>a-b);
+  const rf=S.chartRot;
+  const byRot = rf==='all' ? withLand : withLand.filter(e=>String(e.rot)===String(rf));
+  const filtered = S.chartKillsOnly ? byRot.filter(e=>e.outcome==='Kill') : byRot;
+  let rotBtns=`<button class="cf ${rf==='all'?'on':''}" data-chartrot="all">All</button>`;
+  rotsPresent.forEach(r=>{ rotBtns+=`<button class="cf ${String(rf)===String(r)?'on':''}" data-chartrot="${r}">R${r}</button>`; });
+  rotBtns+=`<button class="cf kill ${S.chartKillsOnly?'on':''}" data-chartkills="1">${S.chartKillsOnly?'✓ ':''}Kills only</button>`;
+
+  // plot only bottom-half (our side) landings. Map full court viewBox to bottom half.
+  // We render just the bottom half (y from NET..Y1) scaled into a 360x320 mini viewBox.
+  const VB_W=360, VB_H=300;
+  const sy = y => (y-NET)/(Y1+ (CH-Y1) -NET) * (VB_H-20) + 10; // map NET..bottom to 10..VB_H-10
+  const dots = filtered.map(e=>{
+    let x,y;
+    if(e.dx!=null && e.dy!=null && e.dy>=NET){ x=e.dx; y=e.dy; }
+    else if(e.lZone){ const z=ZONES.find(z=>z.id===e.lZone); if(!z) return ''; x=z.cx; y=z.cy; }
+    else return '';
+    const col = playColor(e.setPlay||'');
+    const isKill = e.outcome==='Kill';
+    const r = isKill?7:5;
+    const yy = sy(y);
+    return `<g>
+      <circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${r}" fill="${col}" fill-opacity="${isKill?0.95:0.4}" stroke="${col}" stroke-width="${isKill?2:1}"/>
+      ${isKill?`<circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${r+3}" fill="none" stroke="${col}" stroke-width="1" stroke-opacity=".5"/>`:''}
+    </g>`;
+  }).join('');
+
+  // mini court (our side only) with zone grid
+  const gx1=X0+100, gx2=X0+200, threeM=sy(T3B);
+  const court=`<svg viewBox="0 0 ${VB_W} ${VB_H}" style="width:100%;max-width:340px;display:block;margin:6px auto;background:var(--court);border-radius:10px">
+    <rect x="${X0}" y="6" width="${X1-X0}" height="${VB_H-12}" fill="none" stroke="var(--court-line)" stroke-width="2.5"/>
+    <line x1="${gx1}" y1="6" x2="${gx1}" y2="${VB_H-6}" stroke="var(--court-line)" stroke-width="1" opacity=".4"/>
+    <line x1="${gx2}" y1="6" x2="${gx2}" y2="${VB_H-6}" stroke="var(--court-line)" stroke-width="1" opacity=".4"/>
+    <line x1="${X0}" y1="${threeM.toFixed(1)}" x2="${X1}" y2="${threeM.toFixed(1)}" stroke="var(--court-line)" stroke-width="1.5" opacity=".6"/>
+    <line x1="${X0}" y1="8" x2="${X1}" y2="8" stroke="#fff" stroke-width="3" stroke-dasharray="2 4" opacity=".8"/>
+    <text x="${CW/2}" y="22" text-anchor="middle" fill="rgba(0,0,0,.45)" font-size="11" font-family="Saira Condensed" font-weight="700">NET</text>
+    ${dots}
+  </svg>`;
+
+  // legend: plays that appear, + kill/attempt note
+  const playsUsed=[...new Set(filtered.map(e=>e.setPlay).filter(Boolean))];
+  const legend=playsUsed.map(p=>`<span class="cl"><span class="cl-dot" style="background:${playColor(p)}"></span>${esc(p)}</span>`).join('');
+  const kills=filtered.filter(e=>e.outcome==='Kill').length;
+
+  return `<div style="margin-bottom:14px">
+    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--g2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${esc(S.meta.oppName)} Shot Chart — where attacks land</div>
+    <div class="chart-filters">${rotBtns}</div>
+    ${court}
+    <div class="chart-legend">${legend}</div>
+    <div style="font-size:10px;color:var(--ink-faint);margin-top:4px">${S.chartKillsOnly?`Kills only · color = play set · ${filtered.length} kills`:`Solid ring = kill · faded = other attempt · color = play set · ${filtered.length} shots, ${kills} kills`}${rf==='all'?'':' in R'+rf}</div>
+  </div>`;
+}
+function atkByRotTable(title,evs){
+  if(!evs.length) return '';
+  // group by rotation -> combos[comboStr] = {plays:[], n, sets:{play:{n,k}}}
+  const R={};
+  evs.forEach(e=>{
+    const r=e.rot||'?';
+    const d=R[r]=R[r]||{n:0,k:0,combos:{}};
+    d.n++; if(e.outcome==='Kill') d.k++;
+    const plays=(e.combo&&e.combo.length)?e.combo:(e.setPlay?[e.setPlay]:['—']);
+    const key=plays.join(' · ');
+    const c=d.combos[key]=d.combos[key]||{plays:plays.slice(),n:0,sets:{}};
+    c.n++;
+    const sp=e.setPlay||e.setTo||plays[plays.length-1];
+    const s=c.sets[sp]=c.sets[sp]||{n:0,k:0};
+    s.n++; if(e.outcome==='Kill') s.k++;
+  });
+  const order=Object.keys(R).sort((a,b)=>(a==='?'?99:+a)-(b==='?'?99:+b));
+  let rows=order.map(r=>{
+    const d=R[r];
+    // each combo as its own sub-row
+    const combos=Object.entries(d.combos).sort((a,b)=>b[1].n-a[1].n).map(([key,c])=>{
+      // render the full combo; highlight any play that was set, green if it killed
+      const chips=c.plays.map(p=>{
+        const s=c.sets[p];
+        if(!s) return `<span class="rc-play">${esc(p)}</span>`;
+        const cls = s.k>0 ? 'rc-play rc-set rc-kill' : 'rc-play rc-set';
+        const kmark = s.k>0 ? ` ${s.k}<span style="font-size:9px">K</span>` : '';
+        return `<span class="${cls}">${esc(p)}${kmark}</span>`;
+      }).join('<span class="rc-arrow">›</span>');
+      return `<div class="rc-combo"><span class="rc-count">×${c.n}</span>${chips}</div>`;
+    }).join('');
+    return `<tr>
+      <td class="n" style="color:var(--g2);vertical-align:top">R${r}</td>
+      <td class="n" style="vertical-align:top">${d.n}</td>
+      <td class="n" style="color:var(--kill);vertical-align:top">${d.k}</td>
+      <td>${combos}</td></tr>`;
+  }).join('');
+  return `<div style="margin-bottom:14px">
+    ${title?`<div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--g2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${title}</div>`:''}
+    <table class="stat">
+      <tr><th>Rot</th><th>Att</th><th>Kills</th><th>Combinations run (set play highlighted, green = kill)</th></tr>
+      ${rows}
+    </table>
+  </div>`;
+}
+function passTable(title,m,col){
+  const keys=Object.keys(m);
+  if(!keys.length) return '';
+  let tot={sum:0,n:0};
+  let rows=keys.map(k=>{
+    const o=m[k]; tot.sum+=o.sum; tot.n+=o.n;
+    const avg=(o.sum/o.n).toFixed(2);
+    const ac=avgColor(o.sum/o.n);
+    return `<tr><td>${k==='TEAM'?'Team':'#'+esc(k)}</td><td class="n">${o.n}</td>
+      <td class="avg" style="color:${ac}">${avg}</td>
+      <td style="color:var(--ink-faint);font-size:11px">${o.d[3]}/${o.d[2]}/${o.d[1]}/${o.d[0]}</td></tr>`;
+  }).join('');
+  const tAvg=tot.n?(tot.sum/tot.n).toFixed(2):'—';
+  return `<div style="margin-bottom:14px">
+    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:${col};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${title} — avg ${tAvg}</div>
+    <table class="stat"><tr><th>Player</th><th>#</th><th>Avg</th><th>3/2/1/0</th></tr>${rows}</table></div>`;
+}
+function atkTable(title,evs){
+  if(!evs.length) return '';
+  const k=evs.filter(e=>e.outcome==='Kill').length;
+  const er=evs.filter(e=>e.outcome==='Error').length;
+  const bl=evs.filter(e=>e.outcome==='Blocked').length;
+  const tot=evs.length;
+  const eff=((k-er-bl)/tot).toFixed(3).replace(/^0/,'');
+  // by play that was set
+  const dist={};
+  evs.forEach(e=>{const key=e.setPlay||e.setTo||'—';dist[key]=(dist[key]||0)+1;});
+  const distStr=Object.entries(dist).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${v}`).join(' · ');
+  return `<div style="margin-bottom:14px">
+    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${title}</div>
+    <table class="stat">
+      <tr><th>Att</th><th>Kills</th><th>Err</th><th>Blk</th><th>Eff</th></tr>
+      <tr><td class="n">${tot}</td><td class="n" style="color:var(--kill)">${k}</td>
+      <td class="n" style="color:var(--err)">${er}</td><td class="n" style="color:var(--blk)">${bl}</td>
+      <td class="avg">${eff}</td></tr>
+    </table>
+    <div style="font-size:11px;color:var(--ink-faint);margin-top:3px">Set to: ${distStr}</div>
+  </div>`;
+}
+function avgColor(a){ return a>=2.4?'var(--g3)':a>=2.0?'var(--g2)':a>=1.5?'var(--g1)':'var(--g0)'; }
+
+/* ============ INTERACTIONS ============ */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-grade],[data-p],[data-team],[data-mode],[data-play],[data-addplay],[data-addplay-go],[data-addplay-cancel],[data-setplay],[data-type],[data-out],[data-del],[data-pt],[data-rot],[data-rotnext],[data-arot],[data-arotnext],[data-chartrot],[data-chartkills]');
+  if(!t) return;
+  // shot chart rotation filter
+  if(t.dataset.chartrot!==undefined){ S.chartRot=t.dataset.chartrot; renderStats(); return; }
+  if(t.dataset.chartkills!==undefined){ S.chartKillsOnly=!S.chartKillsOnly; renderStats(); return; }
+  // add-play inline input
+  if(t.dataset.addplayGo!==undefined){ commitAddPlay($('#addplay-input')?$('#addplay-input').value:''); return; }
+  if(t.dataset.addplayCancel!==undefined){ S.addingPlay=false; renderTagging(); return; }
+  // rotation
+  if(t.dataset.rot!==undefined){ setRot(+t.dataset.rot); return; }
+  if(t.dataset.rotnext!==undefined){ setRot(((S.passTeam==='ours'?S.ourRot:S.oppRot)%6)+1); return; }
+  // opponent rotation set from the attack map
+  if(t.dataset.arot!==undefined){ S.oppRot=+t.dataset.arot; renderRot(); save(); return; }
+  if(t.dataset.arotnext!==undefined){ S.oppRot=(S.oppRot%6)+1; renderRot(); save(); return; }
+  // pass grade
+  if(t.dataset.grade!==undefined && t.closest('.grades')){ logPass(+t.dataset.grade); return; }
+  // passer select
+  if(t.dataset.p!==undefined){ S.selPasser=t.dataset.p; renderPassers(); return; }
+  // attack input mode (zones / draw)
+  if(t.dataset.mode!==undefined){
+    S.atkMode=t.dataset.mode; S.pending=null;
+    $$('#atk-mode button').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.atkMode));
+    setCourtHint(); renderPending(); save(); return;
+  }
+  // team toggle (passing only — attacks are opponent-only)
+  if(t.dataset.team!==undefined){
+    if(t.closest('#pass-team')){ S.passTeam=t.dataset.team; S.selPasser=null; renderPassers(); renderRot(); }
+    return;
+  }
+  // play combination
+  if(t.dataset.play!==undefined){ togglePlay(t.dataset.play); return; }
+  if(t.dataset.addplay!==undefined){ addPlay(); return; }
+  if(t.dataset.setplay!==undefined){ S.setPlay=t.dataset.setplay; renderTagging(); return; }
+  if(t.dataset.type!==undefined){ S.selType=t.dataset.type; renderTagging(); return; }
+  if(t.dataset.out!==undefined){ finalizeAttack(t.dataset.out); return; }
+  if(t.dataset.del!==undefined){ delEvent(t.dataset.del); return; }
+  if(t.dataset.pt!==undefined){ adjScore(t.dataset.pt); return; }
+});
+
+function togglePlay(p){
+  const i=S.combo.indexOf(p);
+  if(i>=0){ S.combo.splice(i,1); if(S.setPlay===p) S.setPlay=null; }
+  else { S.combo.push(p); }
+  // auto-mark the set play when there's exactly one option
+  if(S.combo.length===1) S.setPlay=S.combo[0];
+  renderTagging();
+}
+function addPlay(){           // open the inline input
+  S.addingPlay=true; renderTagging();
+}
+function commitAddPlay(val){
+  const name=(val||'').trim();
+  S.addingPlay=false;
+  if(!name){ renderTagging(); return; }
+  if(!S.meta.plays.includes(name)) S.meta.plays.push(name);
+  if(!S.combo.includes(name)) S.combo.push(name);
+  if(S.combo.length===1) S.setPlay=name;
+  renderTagging(); save();
+}
+
+function setRot(n){
+  if(S.passTeam==='ours') S.ourRot=n; else S.oppRot=n;
+  renderRot(); save();
+}
+function logPass(grade){
+  const rot = S.passTeam==='ours'?S.ourRot:S.oppRot;
+  const ev={id:uid(),kind:'pass',team:S.passTeam,player:S.selPasser||'TEAM',grade,rot,set:S.setNo,ts:Date.now()};
+  S.events.push(ev);
+  flashGrade(grade);
+  renderLog(); renderStats(); save();
+}
+function flashGrade(g){
+  const el=document.querySelector(`.grade.g${g}`);
+  if(el){ el.style.transform='scale(.9)'; setTimeout(()=>el.style.transform='',90); }
+}
+function logSystem(sys){
+  const ev={id:uid(),kind:'system',team:'opp',sys,set:S.setNo,ts:Date.now()};
+  S.events.push(ev); renderLog(); save();
+}
+function delEvent(id){
+  const i=S.events.findIndex(e=>e.id===id); if(i<0) return;
+  const e=S.events[i];
+  if(e.kind==='attack'){ // reverse score
+    if(e.outcome==='Kill'){ e.team==='ours'?S.ourPts--:S.oppPts--; }
+    else if(e.outcome==='Error'||e.outcome==='Blocked'){ e.team==='ours'?S.oppPts--:S.ourPts--; }
+  }
+  S.events.splice(i,1); renderAll(); save();
+}
+function adjScore(cmd){
+  if(cmd==='ours+')S.ourPts++; if(cmd==='ours-'&&S.ourPts>0)S.ourPts--;
+  if(cmd==='opp+')S.oppPts++; if(cmd==='opp-'&&S.oppPts>0)S.oppPts--;
+  renderHeader(); save();
+}
+$('#btn-undo').onclick=()=>{ if(S.pending){S.pending=null;renderPending();return;} const last=S.events[S.events.length-1]; if(last) delEvent(last.id); };
+$('#set-up').onclick=()=>{
+  // snapshot the set we're leaving, then reset running score for the new set
+  S.setScores[S.setNo]={our:S.ourPts,opp:S.oppPts};
+  S.setNo++;
+  if(S.setScores[S.setNo]){ S.ourPts=S.setScores[S.setNo].our; S.oppPts=S.setScores[S.setNo].opp; }
+  else { S.ourPts=0; S.oppPts=0; }
+  renderAll(); save();
+};
+$('#set-down').onclick=()=>{
+  if(S.setNo>1){
+    S.setScores[S.setNo]={our:S.ourPts,opp:S.oppPts};
+    S.setNo--;
+    if(S.setScores[S.setNo]){ S.ourPts=S.setScores[S.setNo].our; S.oppPts=S.setScores[S.setNo].opp; }
+    renderAll(); save();
+  }
+};
+
+/* ============ MENU ============ */
+$('#btn-menu').onclick=()=>$('#menu').classList.remove('hidden');
+$('#menu-close').onclick=()=>$('#menu').classList.add('hidden');
+$('#menu-edit').onclick=()=>{
+  $('#su-ourname').value=S.meta.ourName; $('#su-oppname').value=S.meta.oppName;
+  $('#su-ourroster').value=S.meta.ourRoster.join(', '); $('#su-opproster').value=S.meta.oppRoster.join(', ');
+  $('#menu').classList.add('hidden'); $('#app').classList.add('hidden'); $('#setup').classList.remove('hidden');
+  $('#su-start').textContent='Save & Continue';
+  $('#su-start').onclick=()=>{
+    S.meta.ourName=$('#su-ourname').value.trim()||'Our Team';
+    S.meta.oppName=$('#su-oppname').value.trim()||'Opponent';
+    S.meta.ourRoster=parseRoster($('#su-ourroster').value);
+    S.meta.oppRoster=parseRoster($('#su-opproster').value);
+    if(!S.meta.ourRoster.length)S.meta.ourRoster=['1','2','3','4','5','6'];
+    $('#setup').classList.add('hidden'); $('#app').classList.remove('hidden');
+    renderAll(); save();
+  };
+};
+$('#menu-csv').onclick=()=>{ exportCSV(); $('#menu').classList.add('hidden'); };
+$('#menu-new').onclick=()=>{
+  if(confirm('Start a new match? This clears the current log.')){
+    $('#menu').classList.add('hidden'); $('#app').classList.add('hidden'); $('#setup').classList.remove('hidden');
+    $('#su-start').textContent='Start Tracking';
+    location.reload();
+  }
+};
+
+/* ============ REPORT ============ */
+$('#btn-report').onclick=openReport;
+$('#rep-close').onclick=()=>$('#report').classList.add('hidden');
+$('#rep-csv').onclick=exportCSV;
+$('#rep-print').onclick=()=>window.print();
+
+function openReport(){
+  $('#rep-title').textContent=`${S.meta.ourName} vs ${S.meta.oppName} — ${S.meta.date}`;
+  const our=passStats('ours'), opp=passStats('opp');
+  const oppAtk=S.events.filter(e=>e.kind==='attack'&&e.team==='opp');
+  const ourPassAll=Object.values(our).reduce((a,o)=>({sum:a.sum+o.sum,n:a.n+o.n}),{sum:0,n:0});
+  const oppPassAll=Object.values(opp).reduce((a,o)=>({sum:a.sum+o.sum,n:a.n+o.n}),{sum:0,n:0});
+
+  const kpi=(v,l)=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  const eff=evs=>{const k=evs.filter(e=>e.outcome==='Kill').length,er=evs.filter(e=>['Error','Blocked'].includes(e.outcome)).length;return evs.length?((k-er)/evs.length).toFixed(3).replace(/^0/,''):'—';};
+
+  let body=`<div class="kpis">
+    ${kpi(S.ourPts+'–'+S.oppPts,'Score logged')}
+    ${kpi(ourPassAll.n?(ourPassAll.sum/ourPassAll.n).toFixed(2):'—',esc(S.meta.ourName)+' pass avg')}
+    ${kpi(oppPassAll.n?(oppPassAll.sum/oppPassAll.n).toFixed(2):'—',esc(S.meta.oppName)+' pass avg')}
+    ${kpi(eff(oppAtk),esc(S.meta.oppName)+' hit eff')}
+  </div><div class="rep-grid">
+    <div class="rep-sec"><h4>${esc(S.meta.ourName)} Passing</h4>${repPassTable(our)}</div>
+    <div class="rep-sec"><h4>${esc(S.meta.oppName)} Passing</h4>${Object.keys(opp).length?repPassTable(opp):'<p style="color:var(--ink-faint);font-size:13px">No opponent passes graded.</p>'}</div>
+    <div class="rep-sec"><h4>${esc(S.meta.oppName)} Attack — by play set</h4>${repAtkTable(oppAtk)}</div>
+    <div class="rep-sec"><h4>${esc(S.meta.oppName)} Combinations Run</h4>${repComboTable(oppAtk)}</div>
+  </div>
+  <div class="rep-sec" style="margin-top:18px"><h4>${esc(S.meta.oppName)} Attack by Rotation</h4>${atkByRotTable('',oppAtk)||'<p style="color:var(--ink-faint);font-size:13px">No attacks logged.</p>'}</div>
+  <div class="rep-sec" style="margin-top:18px"><h4>Passing by Rotation</h4>${repRotTable()}</div>
+  <div class="rep-sec" style="margin-top:18px"><h4>Set-by-Set</h4>${repSetTable()}</div>`;
+  $('#rep-body').innerHTML=body;
+  $('#report').classList.remove('hidden');
+}
+function repSetTable(){
+  // gather all set numbers present in events or snapshots
+  const setNums=new Set();
+  S.events.forEach(e=>{ if(e.set) setNums.add(e.set); });
+  Object.keys(S.setScores).forEach(s=>setNums.add(+s));
+  setNums.add(S.setNo);
+  const sets=[...setNums].sort((a,b)=>a-b);
+  if(!sets.length) return '<p style="color:var(--ink-faint);font-size:13px">No sets logged.</p>';
+
+  const passAvg=(team,set)=>{ const e=S.events.filter(x=>x.kind==='pass'&&x.team===team&&x.set===set); if(!e.length) return null; return e.reduce((a,x)=>a+x.grade,0)/e.length; };
+  const hitEff=(set)=>{ const e=S.events.filter(x=>x.kind==='attack'&&x.team==='opp'&&x.set===set); if(!e.length) return null; const k=e.filter(x=>x.outcome==='Kill').length, er=e.filter(x=>['Error','Blocked'].includes(x.outcome)).length; return (k-er)/e.length; };
+
+  let rows=sets.map(s=>{
+    // score: snapshot if finished, else current running score for the live set
+    const sc = (s===S.setNo) ? {our:S.ourPts,opp:S.oppPts} : (S.setScores[s]||null);
+    const scoreStr = sc ? `${sc.our}–${sc.opp}` : '—';
+    const op=passAvg('ours',s), pp=passAvg('opp',s), he=hitEff(s);
+    const c=v=>v==null?'var(--ink-faint)':avgColor(v);
+    return `<tr>
+      <td class="n" style="color:var(--accent)">Set ${s}</td>
+      <td class="n">${scoreStr}</td>
+      <td class="avg" style="color:${c(op)}">${op==null?'–':op.toFixed(2)}</td>
+      <td class="avg" style="color:${c(pp)}">${pp==null?'–':pp.toFixed(2)}</td>
+      <td class="avg">${he==null?'–':he.toFixed(3).replace(/^(-?)0/,'$1')}</td></tr>`;
+  }).join('');
+  return `<table class="stat">
+    <tr><th>Set</th><th>Score</th><th>${esc(S.meta.ourName)} pass</th><th>${esc(S.meta.oppName)} pass</th><th>${esc(S.meta.oppName)} hit eff</th></tr>
+    ${rows}
+  </table>
+  <p style="font-size:11px;color:var(--ink-faint);margin-top:6px">Score for the current set is live; finished sets are snapshotted when you advance the set counter.</p>`;
+}
+function repComboTable(evs){
+  const withCombo=evs.filter(e=>e.combo&&e.combo.length);
+  if(!withCombo.length) return '<p style="color:var(--ink-faint);font-size:13px">No combinations logged.</p>';
+  const m={};
+  withCombo.forEach(e=>{
+    const key=e.combo.join(' · ');
+    const d=m[key]=m[key]||{n:0,sets:{}};
+    d.n++;
+    const sp=e.setPlay||'?';
+    d.sets[sp]=d.sets[sp]||{n:0,k:0};
+    d.sets[sp].n++; if(e.outcome==='Kill') d.sets[sp].k++;
+  });
+  let rows=Object.entries(m).sort((a,b)=>b[1].n-a[1].n).map(([combo,d])=>{
+    const setStr=Object.entries(d.sets).sort((a,b)=>b[1].n-a[1].n)
+      .map(([p,s])=>`${esc(p)} ${s.n}${s.k?` (${s.k}k)`:''}`).join(', ');
+    return `<tr><td style="font-family:'Saira Condensed';font-weight:700">${esc(combo)}</td><td class="n">${d.n}</td><td style="font-size:11px;color:var(--ink-dim)">${setStr}</td></tr>`;
+  }).join('');
+  return `<table class="stat"><tr><th>Combination</th><th>×</th><th>Set → (kills)</th></tr>${rows}</table>`;
+}
+function repRotTable(){
+  const our=rotStats('ours'), opp=rotStats('opp');
+  const ourTot=Object.values(our).reduce((a,o)=>a+o.n,0);
+  const oppTot=Object.values(opp).reduce((a,o)=>a+o.n,0);
+  if(!ourTot && !oppTot) return '<p style="color:var(--ink-faint);font-size:13px">No rotations tracked. Use the “rot” control while grading passes.</p>';
+  const cell=o=>{ if(!o.n) return '<td style="color:var(--ink-faint)">–</td>'; const a=o.sum/o.n; return `<td class="avg" style="color:${avgColor(a)}">${a.toFixed(2)}<span style="font-family:Archivo;font-size:10px;color:var(--ink-faint)"> (${o.n})</span></td>`; };
+  const rowFor=(label,r)=>`<tr><td style="font-weight:600">${label}</td>${[1,2,3,4,5,6].map(i=>cell(r[i])).join('')}</tr>`;
+  let rows='';
+  if(ourTot) rows+=rowFor(esc(S.meta.ourName),our);
+  if(oppTot) rows+=rowFor(esc(S.meta.oppName),opp);
+  return `<table class="stat"><tr><th>Team</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th></tr>${rows}</table>
+    <p style="font-size:11px;color:var(--ink-faint);margin-top:6px">Serve-receive average per rotation (passes counted in parentheses).</p>`;
+}
+function repPassTable(m){
+  const keys=Object.keys(m); if(!keys.length) return '<p style="color:var(--ink-faint);font-size:13px">No data.</p>';
+  let rows=keys.map(k=>{const o=m[k];const a=(o.sum/o.n);return `<tr><td>${k==='TEAM'?'Team':'#'+esc(k)}</td><td class="n">${o.n}</td><td class="avg" style="color:${avgColor(a)}">${a.toFixed(2)}</td><td style="font-size:11px;color:var(--ink-faint)">${o.d[3]}·${o.d[2]}·${o.d[1]}·${o.d[0]}</td></tr>`;}).join('');
+  return `<table class="stat"><tr><th>Player</th><th>Att</th><th>Avg</th><th>3·2·1·0</th></tr>${rows}</table>`;
+}
+function repAtkTable(evs){
+  if(!evs.length) return '<p style="color:var(--ink-faint);font-size:13px">No attacks logged.</p>';
+  const dist={};
+  evs.forEach(e=>{const key=e.setPlay||e.setTo||'—';const d=dist[key]=dist[key]||{n:0,k:0,e:0};d.n++;if(e.outcome==='Kill')d.k++;if(['Error','Blocked'].includes(e.outcome))d.e++;});
+  let rows=Object.entries(dist).sort((a,b)=>b[1].n-a[1].n).map(([k,d])=>{
+    const ef=((d.k-d.e)/d.n).toFixed(3).replace(/^0/,'');
+    return `<tr><td>${k}</td><td class="n">${d.n}</td><td class="n" style="color:var(--kill)">${d.k}</td><td class="avg">${ef}</td></tr>`;
+  }).join('');
+  // landing zone distribution (kills only — where they put it away)
+  const land={};
+  evs.filter(e=>e.outcome==='Kill'&&e.lZone).forEach(e=>{const l=zoneLabel(e.lZone);land[l]=(land[l]||0)+1;});
+  const landStr=Object.entries(land).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${v}`).join(' · ');
+  return `<table class="stat"><tr><th>Play set</th><th>Att</th><th>Kills</th><th>Eff</th></tr>${rows}</table>
+    ${landStr?`<p style="font-size:11px;color:var(--ink-faint);margin-top:6px"><b>Kills land:</b> ${landStr}</p>`:''}`;
+}
+
+/* ============ CSV EXPORT ============ */
+function exportCSV(){
+  const rows=[['seq','set','rotation','kind','team','player_or_hitter','grade','combination','set_play','attack_type','outcome','origin_zone','landing_zone','origin_x','origin_y','dest_x','dest_y','ts']];
+  S.events.forEach(e=>{
+    rows.push([
+      e.id, e.set, e.rot??'', e.kind, e.team,
+      e.kind==='pass'?(e.player):(e.kind==='attack'?(e.setPlay||''):''),
+      e.kind==='pass'?e.grade:'',
+      e.kind==='attack'&&e.combo?e.combo.join(' > '):'',
+      e.kind==='attack'?(e.setPlay||''):'',
+      e.kind==='attack'?e.type:'',
+      e.kind==='attack'?e.outcome:'',
+      e.kind==='attack'?(e.oZone||''):'',
+      e.kind==='attack'?(e.lZone||''):'',
+      e.ox??'',e.oy??'',e.dx??'',e.dy??'',
+      new Date(e.ts).toISOString()
+    ]);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`${S.meta.ourName}_vs_${S.meta.oppName}_${S.meta.date}.csv`.replace(/\s+/g,'_');
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ============ UTIL ============ */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+boot();
+</script>
+</body>
+</html>
