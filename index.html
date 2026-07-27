@@ -121,7 +121,7 @@
   .ob.cancel{margin-left:auto;background:var(--panel-2);color:var(--ink-dim);border-color:var(--line)}
 
   /* ---------- RIGHT COLUMN ---------- */
-  .rcol{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
+  .rcol{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
   @media (max-width:840px){.rcol{overflow:visible}}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
   .card h3{margin:0 0 9px;font-family:'Saira Condensed';font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.7px;display:flex;align-items:center;gap:8px}
@@ -186,7 +186,7 @@
   #atk-result .ob{font-size:14px;padding:9px 14px}
 
   /* log + stats */
-  .bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-height:0}
+  .bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:0 0 auto;min-height:320px}
   @media (max-width:840px){.bottom{grid-template-columns:1fr}}
   .scroll{overflow:auto;-webkit-overflow-scrolling:touch}
   .logitem{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;background:var(--panel-2);margin-bottom:6px;font-size:13px}
@@ -381,13 +381,13 @@
 
       <!-- LOG + STATS -->
       <div class="bottom">
-        <div class="card" style="display:flex;flex-direction:column;min-height:0">
+        <div class="card" style="display:flex;flex-direction:column;min-height:300px">
           <h3>Live Log <span class="sub" id="log-count"></span></h3>
-          <div class="scroll" id="log" style="flex:1"></div>
+          <div class="scroll" id="log" style="flex:1;min-height:240px"></div>
         </div>
-        <div class="card" style="display:flex;flex-direction:column;min-height:0">
+        <div class="card" style="display:flex;flex-direction:column;min-height:300px">
           <h3>Live Stats</h3>
-          <div class="scroll" id="stats" style="flex:1"></div>
+          <div class="scroll" id="stats" style="flex:1;min-height:240px"></div>
         </div>
       </div>
     </div>
@@ -559,8 +559,8 @@ function drawCourt(){
     <!-- labels -->
     <text x="${CW/2}" y="21" text-anchor="middle" fill="var(--ink-faint)" font-size="17" font-weight="700" font-family="Saira Condensed" id="lab-top">OPP</text>
     <text x="${CW/2}" y="${CH-7}" text-anchor="middle" fill="var(--accent)" font-size="17" font-weight="700" font-family="Saira Condensed" id="lab-bot">OURS</text>
-    <g id="atk-layer"></g>
-    <g id="pending-layer"></g>
+    <g id="atk-layer" pointer-events="none"></g>
+    <g id="pending-layer" pointer-events="none"></g>
   `;
   c.addEventListener('pointerdown', onCourtDown);
   c.addEventListener('pointermove', onCourtMove);
@@ -695,7 +695,7 @@ function pathSvg(pts,col,op,dotStart){
   </g>`;
 }
 function finalizeAttack(outcome){
-  if(outcome==='_cancel'){ S.pending=null; renderPending(); return; }
+  if(outcome==='_cancel'){ resetPending(); renderPending(); return; }
   const path = (S.pending && S.pending.path && S.pending.path.length>=1) ? S.pending.path.slice() : null;
   const a = path?path[0]:null, b = path?path[path.length-1]:null;
   const setPlay = S.setPlay || (S.combo.length===1 ? S.combo[0] : null);
@@ -709,8 +709,15 @@ function finalizeAttack(outcome){
   // auto-score
   if(outcome==='Kill'){ S.atkTeam==='ours'?S.ourPts++:S.oppPts++; }
   else if(outcome==='Error'||outcome==='Blocked'){ S.atkTeam==='ours'?S.oppPts++:S.ourPts++; }
-  S.pending=null; S.combo=[]; S.setPlay=null;   // clear for next rally (swing stays sticky)
+  resetPending();
+  S.combo=[]; S.setPlay=null;   // clear for next rally (swing stays sticky)
   renderAll(); save();
+}
+function resetPending(){
+  S.pending=null;
+  drawId=null;
+  const c=$('#court');
+  if(c){ try{ c.releasePointerCapture&&c.releasePointerCapture(0); }catch(e){} }
 }
 
 /* ============ RENDER ============ */
