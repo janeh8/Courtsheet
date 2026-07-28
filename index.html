@@ -146,9 +146,9 @@
   .grading-target{margin:9px 0 4px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center}
   .grading-target.ours{background:rgba(255,210,74,.16);color:var(--accent);border:1px solid rgba(255,210,74,.4)}
   .grading-target.opp{background:rgba(63,169,245,.16);color:var(--g2);border:1px solid rgba(63,169,245,.4)}
-  .pchip{min-width:42px;height:40px;padding:0 8px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);font-family:'Saira Condensed';font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center}
-  .pchip small{font-family:'Archivo';font-size:9px;color:var(--ink-faint);margin-left:3px;font-weight:600}
-  .pchip.on{background:var(--accent);color:#1a1205;border-color:var(--accent)}
+  .pchip{min-width:64px;height:60px;padding:0 12px;border-radius:12px;background:var(--panel-2);border:2px solid var(--line);font-family:'Saira Condensed';font-weight:800;font-size:26px;display:flex;align-items:center;justify-content:center}
+  .pchip small{font-family:'Archivo';font-size:10px;color:var(--ink-faint);margin-left:4px;font-weight:600}
+  .pchip.on{background:var(--accent);color:#1a1205;border-color:var(--accent);box-shadow:0 3px 10px rgba(255,210,74,.3)}
   .pchip.on small{color:#6b4e00}
 
   .grades{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:4px}
@@ -317,7 +317,12 @@
       <div class="fld">
         <label>Our Roster — jersey #s</label>
         <input id="su-ourroster" placeholder="1, 4, 7, 10, 12, 15">
-        <div class="roster-help">Comma-separated. Tap a number later to grade their pass.</div>
+        <div class="roster-help">Comma-separated.</div>
+      </div>
+      <div class="fld">
+        <label>Our Passers — jersey #s (subset of roster)</label>
+        <input id="su-ourpassers" placeholder="e.g. 4, 7, 12">
+        <div class="roster-help">Only these players show as tap targets when grading (OHs + libero, usually). Leave blank to show everyone.</div>
       </div>
       <div class="fld">
         <label>Opponent Roster — jersey #s</label>
@@ -600,6 +605,7 @@ async function boot(){
     $('#su-ourname').value=saved.meta.ourName; $('#su-oppname').value=saved.meta.oppName;
     $('#su-ourroster').value=saved.meta.ourRoster.join(', ');
     $('#su-opproster').value=saved.meta.oppRoster.join(', ');
+    if(saved.meta.ourPassers) $('#su-ourpassers').value=saved.meta.ourPassers.join(', ');
   }
 }
 function parseRoster(str){
@@ -611,12 +617,15 @@ $('#su-start').onclick = ()=>{
     oppName: $('#su-oppname').value.trim()||'Opponent',
     ourRoster: parseRoster($('#su-ourroster').value),
     oppRoster: parseRoster($('#su-opproster').value),
+    ourPassers: parseRoster($('#su-ourpassers').value),
     plays: DEFAULT_PLAYS.slice(),
     date: new Date().toISOString().slice(0,10)
   };
   if(meta.ourRoster.length===0) meta.ourRoster=['1','2','3','4','5','6'];
+  // ensure any passer listed is in the roster
+  meta.ourPassers = meta.ourPassers.filter(p=>meta.ourRoster.includes(p));
   S = freshState(meta);
-  S.selPasser = meta.ourRoster[0];
+  S.selPasser = (meta.ourPassers.length?meta.ourPassers:meta.ourRoster)[0];
   startApp();
 };
 
@@ -893,7 +902,13 @@ function renderHeader(){
 
 function renderPassers(){
   const wrap=$('#pass-players');
-  const roster = S.passTeam==='ours'?S.meta.ourRoster:S.meta.oppRoster;
+  let roster;
+  if(S.passTeam==='ours'){
+    // if user marked specific passers, show only those; otherwise fall back to full roster
+    roster = (S.meta.ourPassers && S.meta.ourPassers.length) ? S.meta.ourPassers : S.meta.ourRoster;
+  } else {
+    roster = S.meta.oppRoster;
+  }
   $$('#pass-team button').forEach(b=>b.classList.toggle('on',b.dataset.team===S.passTeam));
   // grading-target banner
   const gt=$('#grading-target');
@@ -1449,6 +1464,7 @@ $('#menu-close').onclick=()=>$('#menu').classList.add('hidden');
 $('#menu-edit').onclick=()=>{
   $('#su-ourname').value=S.meta.ourName; $('#su-oppname').value=S.meta.oppName;
   $('#su-ourroster').value=S.meta.ourRoster.join(', '); $('#su-opproster').value=S.meta.oppRoster.join(', ');
+  $('#su-ourpassers').value=(S.meta.ourPassers||[]).join(', ');
   $('#menu').classList.add('hidden'); $('#app').classList.add('hidden'); $('#setup').classList.remove('hidden');
   $('#su-start').textContent='Save & Continue';
   $('#su-start').onclick=()=>{
@@ -1456,6 +1472,7 @@ $('#menu-edit').onclick=()=>{
     S.meta.oppName=$('#su-oppname').value.trim()||'Opponent';
     S.meta.ourRoster=parseRoster($('#su-ourroster').value);
     S.meta.oppRoster=parseRoster($('#su-opproster').value);
+    S.meta.ourPassers=parseRoster($('#su-ourpassers').value).filter(p=>S.meta.ourRoster.includes(p));
     if(!S.meta.ourRoster.length)S.meta.ourRoster=['1','2','3','4','5','6'];
     $('#setup').classList.add('hidden'); $('#app').classList.remove('hidden');
     renderAll(); save();
