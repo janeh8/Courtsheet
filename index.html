@@ -167,7 +167,14 @@
   .pill input{width:74px;background:transparent;border:none;color:inherit;font-family:inherit;font-size:13px}
   .pill input:focus{outline:none}
   .alab{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.6px;width:62px;flex-shrink:0;font-weight:700}
-  .play{padding:9px 15px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);font-family:'Saira Condensed';font-weight:700;font-size:16px;letter-spacing:.4px;color:var(--ink)}
+  .play{padding:13px 18px;border-radius:11px;background:var(--panel-2);border:1px solid var(--line);font-family:'Saira Condensed';font-weight:700;font-size:19px;letter-spacing:.4px;color:var(--ink);min-width:56px}
+  .play-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .play-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-faint);font-weight:700;width:78px;flex-shrink:0;text-align:right}
+  .play-btns{display:flex;flex-wrap:wrap;gap:7px;flex:1}
+  /* subtle group tints so rows are visually distinct at a glance */
+  .play-row:nth-child(1) .play-lbl{color:#f5b53d}
+  .play-row:nth-child(2) .play-lbl{color:#3fa9f5}
+  .play-row:nth-child(3) .play-lbl{color:#b06bff}
   .play.on{background:#2d3a4d;border-color:var(--g2);color:#bfe0ff}
   .play.add{color:var(--ink-faint);font-family:'Archivo';font-size:13px;font-weight:600}
   .addplay-box{display:inline-flex;gap:5px;align-items:center}
@@ -217,6 +224,15 @@
   .autoread{background:linear-gradient(180deg,rgba(63,169,245,.10),rgba(63,169,245,.03));border:1px solid rgba(63,169,245,.3);border-radius:11px;padding:11px 13px;margin-bottom:14px}
   .autoread .ar-h{font-family:'Saira Condensed';font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--g2);margin-bottom:6px}
   .autoread .ar-l{font-size:13px;color:var(--ink);margin:3px 0;line-height:1.4}
+  .sec-h{display:flex;align-items:center;gap:9px;margin:14px 0 8px;padding:6px 10px;border-left:3px solid var(--g2);background:rgba(63,169,245,.06);border-radius:0 8px 8px 0}
+  .sec-h .sec-n{width:22px;height:22px;border-radius:6px;color:#04121f;font-family:'Saira Condensed';font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+  .sec-h .sec-t{font-family:'Saira Condensed';font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink)}
+  tr.rot-head td{border-bottom:none;padding-bottom:4px}
+  tr.rot-detail td{border-bottom:1px solid var(--line);padding:0 6px 8px 34px}
+  table.sp-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:2px}
+  table.sp-table th{text-align:left;color:var(--ink-faint);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-bottom:1px solid rgba(42,50,61,.5)}
+  table.sp-table td{padding:4px 6px;border-bottom:1px dotted rgba(42,50,61,.4)}
+  table.sp-table .sp-play{font-family:'Saira Condensed';font-weight:700;color:#bfe0ff;font-size:13px}
   table.stat td.n{font-family:'Saira Condensed';font-weight:700;font-size:15px}
   .avg{font-family:'Saira Condensed';font-weight:800;font-size:15px}
   .bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:3px}
@@ -445,7 +461,12 @@ const KEY='courtsheet_match_v1';
 /* ============ STATE ============ */
 let S = null;
 const TYPES = ['Hard','Tip','Roll','Off-spd'];
-const DEFAULT_PLAYS = ['Go','Jet','3','Rip','2','1','Bang','Push','Bic','D','B'];
+const PLAY_GROUPS = [
+  { label:'Front-row quicks', plays:['1','Push','3','Gap','Tight','Slide'] },
+  { label:'Pin sets',         plays:['Go','Rip','2','Jet','Bang'] },
+  { label:'Back-row sets',    plays:['Bic','D','Dump'] },
+];
+const DEFAULT_PLAYS = PLAY_GROUPS.flatMap(g=>g.plays);
 
 function freshState(meta){
   return {
@@ -790,14 +811,27 @@ function renderTagging(){
   const wh2=$('#atk-which-head');
   if(wh2) wh2.textContent = '· tracking '+S.meta.oppName;
 
-  // play buttons (toggle into combo) + add custom
-  $('#plays').innerHTML = S.meta.plays.map(p=>
-    `<button class="play ${S.combo.includes(p)?'on':''}" data-play="${esc(p)}">${esc(p)}</button>`).join('')
-    + (S.addingPlay
+  // play buttons grouped into rows by tempo/type + any custom + add
+  const inGroups = new Set(PLAY_GROUPS.flatMap(g=>g.plays));
+  const OLD_DEFAULTS = new Set(['B']); // plays removed from the default set
+  const customPlays = S.meta.plays.filter(p=>!inGroups.has(p) && !OLD_DEFAULTS.has(p));
+  const btn = p => `<button class="play ${S.combo.includes(p)?'on':''}" data-play="${esc(p)}">${esc(p)}</button>`;
+  let playsHtml = PLAY_GROUPS.map(g=>`
+    <div class="play-row">
+      <span class="play-lbl">${g.label}</span>
+      <div class="play-btns">${g.plays.map(btn).join('')}</div>
+    </div>`).join('');
+  playsHtml += `<div class="play-row">
+    <span class="play-lbl">Custom</span>
+    <div class="play-btns">${customPlays.map(btn).join('')}${
+      S.addingPlay
         ? `<span class="addplay-box"><input id="addplay-input" class="addplay-input" type="text" placeholder="Name…" autocomplete="off" maxlength="12">
              <button class="play addplay-go" data-addplay-go="1">Add</button>
              <button class="play addplay-cancel" data-addplay-cancel="1">✕</button></span>`
-        : `<button class="play add" data-addplay="1">+ Add</button>`);
+        : `<button class="play add" data-addplay="1">+ Add</button>`
+    }</div>
+  </div>`;
+  $('#plays').innerHTML = playsHtml;
   if(S.addingPlay){
     const inp=$('#addplay-input');
     if(inp){ inp.focus();
@@ -892,7 +926,7 @@ function rotStrip(title,team,col){
       <div style="font-size:9px;color:var(--ink-faint)">${o.n||''}</div></div>`;
   }
   return `<div style="margin-bottom:14px">
-    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:${col};text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">${title}</div>
+    ${title?`<div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:${col};text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">${title}</div>`:''}
     <div style="display:flex;gap:5px">${cells}</div></div>`;
 }
 function autoRead(){
@@ -930,17 +964,31 @@ function autoRead(){
 function renderStats(){
   const box=$('#stats');
   const our=passStats('ours'); const opp=passStats('opp');
+  const oppAtk=S.events.filter(e=>e.kind==='attack'&&e.team==='opp');
   let html='';
   html+=autoRead();
-  html+=passTable(S.meta.ourName+' Passing',our,'var(--accent)');
-  html+=rotStrip(S.meta.ourName+' Pass by Rotation','ours','var(--accent)');
-  // opponent passing + attacking (we do not track our own attack)
-  html+=passTable(S.meta.oppName+' Passing',opp,'var(--g2)');
-  html+=rotStrip(S.meta.oppName+' Pass by Rotation','opp','var(--g2)');
-  html+=atkTable(S.meta.oppName+' Attack',S.events.filter(e=>e.kind==='attack'&&e.team==='opp'));
-  html+=atkByRotTable(S.meta.oppName+' Attack by Rotation',S.events.filter(e=>e.kind==='attack'&&e.team==='opp'));
-  html+=shotChart(S.events.filter(e=>e.kind==='attack'&&e.team==='opp'));
+
+  // 1) Who's getting set & how (opponent attack by rotation — LEADS)
+  html+=sectionHead('1', 'Who\'s Getting Set — by Rotation','var(--g2)');
+  html+=atkByRotTable('',oppAtk);
+
+  // 2) Opponent Serve Receive (by rotation + overall)
+  html+=sectionHead('2', S.meta.oppName+' Serve Receive','var(--g2)');
+  html+=rotStrip('','opp','var(--g2)');
+  html+=passTable('',opp,'var(--g2)');
+
+  // 3) Georgetown Serve Receive (by rotation + by player)
+  html+=sectionHead('3', S.meta.ourName+' Serve Receive','var(--accent)');
+  html+=rotStrip('','ours','var(--accent)');
+  html+=passTable('',our,'var(--accent)');
+
+  // Shot chart (visual companion to section 1)
+  html+=shotChart(oppAtk);
+
   box.innerHTML=html||`<div class="empty">Stats appear as you log.</div>`;
+}
+function sectionHead(num,title,col){
+  return `<div class="sec-h" style="border-left-color:${col}"><span class="sec-n" style="background:${col}">${num}</span><span class="sec-t">${title}</span></div>`;
 }
 
 // distinct colors for plays (set call) on the shot chart
@@ -1011,11 +1059,11 @@ function shotChart(allOpp){
 }
 function atkByRotTable(title,evs){
   if(!evs.length) return '';
-  // group by rotation -> combos[comboStr] = {plays:[], n, sets:{play:{n,k}}}
+  // group by rotation -> combos (full combo view) + setPlays (per-set-play detail)
   const R={};
   evs.forEach(e=>{
     const r=e.rot||'?';
-    const d=R[r]=R[r]||{n:0,k:0,combos:{}};
+    const d=R[r]=R[r]||{n:0,k:0,combos:{},setPlays:{}};
     d.n++; if(e.outcome==='Kill') d.k++;
     const plays=(e.combo&&e.combo.length)?e.combo:(e.setPlay?[e.setPlay]:['—']);
     const key=plays.join(' · ');
@@ -1024,13 +1072,18 @@ function atkByRotTable(title,evs){
     const sp=e.setPlay||e.setTo||plays[plays.length-1];
     const s=c.sets[sp]=c.sets[sp]||{n:0,k:0};
     s.n++; if(e.outcome==='Kill') s.k++;
+    // per-set-play detail
+    const dp=d.setPlays[sp]=d.setPlays[sp]||{n:0,k:0,how:{},kills:[]};
+    dp.n++; if(e.outcome==='Kill') dp.k++;
+    const ht=e.type||'—';
+    dp.how[ht]=(dp.how[ht]||0)+1;
+    if(e.outcome==='Kill' && e.lZone) dp.kills.push(zoneLabel(e.lZone));
   });
   const order=Object.keys(R).sort((a,b)=>(a==='?'?99:+a)-(b==='?'?99:+b));
   let rows=order.map(r=>{
     const d=R[r];
-    // each combo as its own sub-row
+    // combo chips (the "what they showed")
     const combos=Object.entries(d.combos).sort((a,b)=>b[1].n-a[1].n).map(([key,c])=>{
-      // render the full combo; highlight any play that was set, green if it killed
       const chips=c.plays.map(p=>{
         const s=c.sets[p];
         if(!s) return `<span class="rc-play">${esc(p)}</span>`;
@@ -1040,11 +1093,32 @@ function atkByRotTable(title,evs){
       }).join('<span class="rc-arrow">›</span>');
       return `<div class="rc-combo"><span class="rc-count">×${c.n}</span>${chips}</div>`;
     }).join('');
-    return `<tr>
-      <td class="n" style="color:var(--g2);vertical-align:top">R${r}</td>
-      <td class="n" style="vertical-align:top">${d.n}</td>
-      <td class="n" style="color:var(--kill);vertical-align:top">${d.k}</td>
-      <td>${combos}</td></tr>`;
+    // per-set-play detail table: what was set, how many, kills, HOW, landing
+    const setPlays=Object.entries(d.setPlays).sort((a,b)=>b[1].n-a[1].n).map(([p,dp])=>{
+      const howStr=Object.entries(dp.how).sort((a,b)=>b[1]-a[1]).map(([h,n])=>`${esc(h)} ${n}`).join(' · ');
+      const landStr=dp.kills.length?dp.kills.reduce((a,l)=>{a[l]=(a[l]||0)+1;return a;},{}):null;
+      const landOut=landStr?Object.entries(landStr).sort((a,b)=>b[1]-a[1]).map(([l,n])=>`${esc(l)}${n>1?' ×'+n:''}`).join(', '):'—';
+      const eff=dp.n?((dp.k)/dp.n).toFixed(2).replace(/^0/,''):'';
+      return `<tr>
+        <td class="sp-play">${esc(p)}</td>
+        <td class="n">${dp.n}</td>
+        <td class="n" style="color:var(--kill)">${dp.k}</td>
+        <td style="font-size:11px;color:var(--ink-dim)">${howStr}</td>
+        <td style="font-size:11px;color:var(--kill)">${landOut}</td>
+      </tr>`;
+    }).join('');
+    return `<tr class="rot-head">
+      <td class="n" style="color:var(--g2)">R${r}</td>
+      <td class="n">${d.n}</td>
+      <td class="n" style="color:var(--kill)">${d.k}</td>
+      <td>${combos}</td>
+    </tr>
+    <tr class="rot-detail"><td colspan="4" style="padding-top:0">
+      <table class="sp-table">
+        <tr><th>Set</th><th>×</th><th>K</th><th>How (Hard/Tip/Roll…)</th><th>Kills land</th></tr>
+        ${setPlays}
+      </table>
+    </td></tr>`;
   }).join('');
   return `<div style="margin-bottom:14px">
     ${title?`<div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--g2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${title}</div>`:''}
@@ -1067,8 +1141,9 @@ function passTable(title,m,col){
       <td style="color:var(--ink-faint);font-size:11px">${o.d[3]}/${o.d[2]}/${o.d[1]}/${o.d[0]}</td></tr>`;
   }).join('');
   const tAvg=tot.n?(tot.sum/tot.n).toFixed(2):'—';
+  const tCol=tot.n?avgColor(tot.sum/tot.n):'var(--ink-faint)';
   return `<div style="margin-bottom:14px">
-    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:${col};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${title} — avg ${tAvg}</div>
+    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:${col};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${title?title+' — ':''}Overall <span style="color:${tCol}">${tAvg}</span> <span style="color:var(--ink-faint);font-weight:500">(${tot.n} passes)</span></div>
     <table class="stat"><tr><th>Player</th><th>#</th><th>Avg</th><th>3/2/1/0</th></tr>${rows}</table></div>`;
 }
 function atkTable(title,evs){
@@ -1256,20 +1331,92 @@ function openReport(){
     ${kpi(ourPassAll.n?(ourPassAll.sum/ourPassAll.n).toFixed(2):'—',esc(S.meta.ourName)+' pass avg')}
     ${kpi(oppPassAll.n?(oppPassAll.sum/oppPassAll.n).toFixed(2):'—',esc(S.meta.oppName)+' pass avg')}
     ${kpi(eff(oppAtk),esc(S.meta.oppName)+' hit eff')}
-  </div><div class="rep-grid">
-    <div class="rep-sec"><h4>${esc(S.meta.ourName)} Passing</h4>${repPassTable(our)}</div>
-    <div class="rep-sec"><h4>${esc(S.meta.oppName)} Passing</h4>${Object.keys(opp).length?repPassTable(opp):'<p style="color:var(--ink-faint);font-size:13px">No opponent passes graded.</p>'}</div>
-    <div class="rep-sec"><h4>${esc(S.meta.oppName)} Attack — by play set</h4>${repAtkTable(oppAtk)}</div>
-    <div class="rep-sec"><h4>${esc(S.meta.oppName)} Combinations Run</h4>${repComboTable(oppAtk)}</div>
   </div>
-  <div class="rep-sec" style="margin-top:18px"><h4>${esc(S.meta.oppName)} Attack by Rotation</h4>${atkByRotTable('',oppAtk)||'<p style="color:var(--ink-faint);font-size:13px">No attacks logged.</p>'}</div>
-  <div class="rep-sec" style="margin-top:18px"><h4>Passing by Rotation</h4>${repRotTable()}</div>
+
+  <div class="rep-sec" style="margin-top:14px">
+    <h4>1 · Who's Getting Set — by Rotation (${esc(S.meta.oppName)})</h4>
+    ${atkByRotTable('',oppAtk)||'<p style="color:var(--ink-faint);font-size:13px">No attacks logged.</p>'}
+  </div>
+
+  <div class="rep-sec" style="margin-top:18px">
+    <h4>2 · ${esc(S.meta.oppName)} Serve Receive</h4>
+    <div style="margin-bottom:8px;color:var(--ink-dim);font-size:13px">Overall <b style="color:${oppPassAll.n?avgColor(oppPassAll.sum/oppPassAll.n):'var(--ink-faint)'}">${oppPassAll.n?(oppPassAll.sum/oppPassAll.n).toFixed(2):'—'}</b> · ${oppPassAll.n} passes graded</div>
+    ${repRotStripOnly('opp','var(--g2)')}
+    ${Object.keys(opp).length?repPassTable(opp):'<p style="color:var(--ink-faint);font-size:13px">No opponent passes graded.</p>'}
+  </div>
+
+  <div class="rep-sec" style="margin-top:18px">
+    <h4>3 · ${esc(S.meta.ourName)} Serve Receive</h4>
+    <div style="margin-bottom:8px;color:var(--ink-dim);font-size:13px">Overall <b style="color:${ourPassAll.n?avgColor(ourPassAll.sum/ourPassAll.n):'var(--ink-faint)'}">${ourPassAll.n?(ourPassAll.sum/ourPassAll.n).toFixed(2):'—'}</b> · ${ourPassAll.n} passes graded</div>
+    ${repRotStripOnly('ours','var(--accent)')}
+    ${Object.keys(our).length?repPassTable(our):'<p style="color:var(--ink-faint);font-size:13px">No passes graded yet.</p>'}
+  </div>
+
+  <div class="rep-sec" style="margin-top:18px">
+    <h4>4 · Rotational Analysis — full picture per rotation</h4>
+    ${repRotAnalysis()}
+  </div>
+
+  <div class="rep-sec" style="margin-top:18px"><h4>${esc(S.meta.oppName)} Combinations Run</h4>${repComboTable(oppAtk)}</div>
   <div class="rep-sec" style="margin-top:18px"><h4>Set-by-Set</h4>${repSetTable()}</div>`;
   $('#rep-body').innerHTML=body;
   $('#report').classList.remove('hidden');
 }
+function repRotStripOnly(team,col){
+  const r=rotStats(team);
+  const total=Object.values(r).reduce((a,o)=>a+o.n,0);
+  if(!total) return '';
+  let cells='';
+  for(let i=1;i<=6;i++){
+    const o=r[i]; const avg=o.n?(o.sum/o.n):null;
+    const c=avg==null?'var(--ink-faint)':avgColor(avg);
+    cells+=`<div style="flex:1;text-align:center;padding:6px 2px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px">
+      <div style="font-size:9px;color:var(--ink-faint);font-weight:700;letter-spacing:.4px">R${i}</div>
+      <div class="avg" style="color:${c};font-size:17px">${avg==null?'–':avg.toFixed(2)}</div>
+      <div style="font-size:9px;color:var(--ink-faint)">${o.n||''}</div></div>`;
+  }
+  return `<div style="display:flex;gap:5px;margin-bottom:10px">${cells}</div>`;
+}
+function repRotAnalysis(){
+  // For each rotation, show: our SR avg, opp SR avg, opp hit efficiency, top play they set
+  const R={};
+  for(let i=1;i<=6;i++) R[i]={};
+  const ourP=rotStats('ours'), oppP=rotStats('opp');
+  const oppAtkAll=S.events.filter(e=>e.kind==='attack'&&e.team==='opp'&&e.rot);
+  const anyData = Object.values(ourP).some(o=>o.n) || Object.values(oppP).some(o=>o.n) || oppAtkAll.length;
+  if(!anyData) return '<p style="color:var(--ink-faint);font-size:13px">Not enough data yet.</p>';
+  let rows='';
+  for(let i=1;i<=6;i++){
+    const our=ourP[i]||{n:0,sum:0};
+    const opp=oppP[i]||{n:0,sum:0};
+    const atkR=oppAtkAll.filter(e=>+e.rot===i);
+    const k=atkR.filter(e=>e.outcome==='Kill').length;
+    const er=atkR.filter(e=>['Error','Blocked'].includes(e.outcome)).length;
+    const eff=atkR.length?((k-er)/atkR.length).toFixed(2).replace(/^(-?)0/,'$1'):'—';
+    // top set-play in this rotation
+    const spCount={}; atkR.forEach(e=>{const sp=e.setPlay||e.setTo;if(sp)spCount[sp]=(spCount[sp]||0)+1;});
+    const topPlay=Object.entries(spCount).sort((a,b)=>b[1]-a[1])[0];
+    const topStr=topPlay?`${esc(topPlay[0])} ×${topPlay[1]}`:'—';
+    const ourAvg=our.n?(our.sum/our.n).toFixed(2):'—';
+    const oppAvg=opp.n?(opp.sum/opp.n).toFixed(2):'—';
+    const ourC=our.n?avgColor(our.sum/our.n):'var(--ink-faint)';
+    const oppC=opp.n?avgColor(opp.sum/opp.n):'var(--ink-faint)';
+    rows+=`<tr>
+      <td class="n" style="color:var(--g2)">R${i}</td>
+      <td class="avg" style="color:${ourC}">${ourAvg}<span style="font-family:Archivo;font-size:10px;color:var(--ink-faint)"> (${our.n})</span></td>
+      <td class="avg" style="color:${oppC}">${oppAvg}<span style="font-family:Archivo;font-size:10px;color:var(--ink-faint)"> (${opp.n})</span></td>
+      <td class="avg">${eff}<span style="font-family:Archivo;font-size:10px;color:var(--ink-faint)"> (${atkR.length})</span></td>
+      <td class="n" style="color:var(--kill)">${k}</td>
+      <td style="font-family:'Saira Condensed';font-weight:700;color:#bfe0ff">${topStr}</td>
+    </tr>`;
+  }
+  return `<table class="stat">
+    <tr><th>Rot</th><th>${esc(S.meta.ourName)} SR</th><th>${esc(S.meta.oppName)} SR</th><th>${esc(S.meta.oppName)} eff</th><th>Kills</th><th>Top set-play</th></tr>
+    ${rows}
+  </table>
+  <p style="font-size:11px;color:var(--ink-faint);margin-top:6px">Counts in parentheses. SR = serve-receive pass avg (0–3). Eff = (kills − errors) / attempts.</p>`;
+}
 function repSetTable(){
-  // gather all set numbers present in events or snapshots
   const setNums=new Set();
   S.events.forEach(e=>{ if(e.set) setNums.add(e.set); });
   Object.keys(S.setScores).forEach(s=>setNums.add(+s));
