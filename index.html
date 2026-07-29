@@ -329,6 +329,11 @@
         <input id="su-opproster" placeholder="2, 3, 5, 8, 11, 14">
         <div class="roster-help">Optional — leave blank to grade opponent as a team.</div>
       </div>
+      <div class="fld">
+        <label>Opponent Passers — jersey #s (subset of opp roster)</label>
+        <input id="su-opppassers" placeholder="e.g. 3, 8, 11">
+        <div class="roster-help">Only these players show as tap targets when grading opponent. Leave blank to show their full roster.</div>
+      </div>
     </div>
     <div class="setup-foot">
       <div class="resume" id="resume-line"></div>
@@ -606,6 +611,7 @@ async function boot(){
     $('#su-ourroster').value=saved.meta.ourRoster.join(', ');
     $('#su-opproster').value=saved.meta.oppRoster.join(', ');
     if(saved.meta.ourPassers) $('#su-ourpassers').value=saved.meta.ourPassers.join(', ');
+    if(saved.meta.oppPassers) $('#su-opppassers').value=saved.meta.oppPassers.join(', ');
   }
 }
 function parseRoster(str){
@@ -618,12 +624,14 @@ $('#su-start').onclick = ()=>{
     ourRoster: parseRoster($('#su-ourroster').value),
     oppRoster: parseRoster($('#su-opproster').value),
     ourPassers: parseRoster($('#su-ourpassers').value),
+    oppPassers: parseRoster($('#su-opppassers').value),
     plays: DEFAULT_PLAYS.slice(),
     date: new Date().toISOString().slice(0,10)
   };
   if(meta.ourRoster.length===0) meta.ourRoster=['1','2','3','4','5','6'];
   // ensure any passer listed is in the roster
   meta.ourPassers = meta.ourPassers.filter(p=>meta.ourRoster.includes(p));
+  meta.oppPassers = meta.oppPassers.filter(p=>meta.oppRoster.includes(p));
   S = freshState(meta);
   S.selPasser = (meta.ourPassers.length?meta.ourPassers:meta.ourRoster)[0];
   startApp();
@@ -907,7 +915,7 @@ function renderPassers(){
     // if user marked specific passers, show only those; otherwise fall back to full roster
     roster = (S.meta.ourPassers && S.meta.ourPassers.length) ? S.meta.ourPassers : S.meta.ourRoster;
   } else {
-    roster = S.meta.oppRoster;
+    roster = (S.meta.oppPassers && S.meta.oppPassers.length) ? S.meta.oppPassers : S.meta.oppRoster;
   }
   $$('#pass-team button').forEach(b=>b.classList.toggle('on',b.dataset.team===S.passTeam));
   // grading-target banner
@@ -1465,6 +1473,7 @@ $('#menu-edit').onclick=()=>{
   $('#su-ourname').value=S.meta.ourName; $('#su-oppname').value=S.meta.oppName;
   $('#su-ourroster').value=S.meta.ourRoster.join(', '); $('#su-opproster').value=S.meta.oppRoster.join(', ');
   $('#su-ourpassers').value=(S.meta.ourPassers||[]).join(', ');
+  $('#su-opppassers').value=(S.meta.oppPassers||[]).join(', ');
   $('#menu').classList.add('hidden'); $('#app').classList.add('hidden'); $('#setup').classList.remove('hidden');
   $('#su-start').textContent='Save & Continue';
   $('#su-start').onclick=()=>{
@@ -1473,6 +1482,7 @@ $('#menu-edit').onclick=()=>{
     S.meta.ourRoster=parseRoster($('#su-ourroster').value);
     S.meta.oppRoster=parseRoster($('#su-opproster').value);
     S.meta.ourPassers=parseRoster($('#su-ourpassers').value).filter(p=>S.meta.ourRoster.includes(p));
+    S.meta.oppPassers=parseRoster($('#su-opppassers').value).filter(p=>S.meta.oppRoster.includes(p));
     if(!S.meta.ourRoster.length)S.meta.ourRoster=['1','2','3','4','5','6'];
     $('#setup').classList.add('hidden'); $('#app').classList.remove('hidden');
     renderAll(); save();
@@ -1904,6 +1914,34 @@ function exportCSV(){
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 boot();
+
+// ============ SERVICE WORKER (offline capability) ============
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      // Check for updates on each visit
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            // A new version is ready — show a small update prompt
+            showUpdateBanner();
+          }
+        });
+      });
+    }).catch(() => { /* offline first-time — silent fail is fine */ });
+  });
+}
+function showUpdateBanner(){
+  if(document.getElementById('update-banner')) return;
+  const b=document.createElement('div');
+  b.id='update-banner';
+  b.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a1205;font-family:Saira Condensed,sans-serif;font-weight:800;padding:11px 20px;border-radius:11px;box-shadow:0 6px 22px rgba(0,0,0,.4);z-index:9999;font-size:14px;cursor:pointer';
+  b.textContent='↻ New version available — tap to refresh';
+  b.onclick=()=>location.reload();
+  document.body.appendChild(b);
+}
 </script>
 </body>
 </html>
