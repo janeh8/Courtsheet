@@ -1086,22 +1086,28 @@ function autoRead(){
   const oppPass=S.events.filter(e=>e.kind==='pass'&&e.team==='opp'&&e.rot);
   const ourPass=S.events.filter(e=>e.kind==='pass'&&e.team==='ours'&&e.rot);
 
-  // ===== 1. MOST DANGEROUS: what set is scoring the most for them =====
+  // ===== 1. MOST DANGEROUS: kills × kill% (weighted by both damage and efficiency) =====
   if(oppAtk.length>=4){
-    const P={}; // by set play
+    const P={}; // by set play — track attempts and rotation frequency
     oppAtk.forEach(e=>{
       const p=e.setPlay||e.setTo; if(!p) return;
-      const d=P[p]=P[p]||{n:0,k:0,rots:{}};
-      d.n++; if(e.outcome==='Kill'){ d.k++; d.rots[e.rot]=(d.rots[e.rot]||0)+1; }
+      const d=P[p]=P[p]||{n:0,k:0,rotAtt:{}};
+      d.n++;
+      d.rotAtt[e.rot]=(d.rotAtt[e.rot]||0)+1;   // count attempts per rotation
+      if(e.outcome==='Kill') d.k++;
     });
-    const rows=Object.entries(P).filter(([,d])=>d.k>=1).map(([p,d])=>({p,k:d.k,n:d.n,rots:d.rots}));
+    // Only consider plays with at least 1 kill and 2+ attempts (avoid 1-for-1 flukes)
+    const rows=Object.entries(P)
+      .filter(([,d])=>d.k>=1 && d.n>=2)
+      .map(([p,d])=>({p, k:d.k, n:d.n, kPct:d.k/d.n, score:d.k*(d.k/d.n), rotAtt:d.rotAtt}));
     if(rows.length){
-      rows.sort((a,b)=>b.k-a.k || (b.k/b.n)-(a.k/a.n));
+      rows.sort((a,b)=>b.score-a.score);
       const top=rows[0];
-      const topRot=Object.entries(top.rots).sort((a,b)=>b[1]-a[1])[0];
+      // "Mostly in R__" now means: rotation with the most ATTEMPTS of this play (that's what you scout)
+      const topRot=Object.entries(top.rotAtt).sort((a,b)=>b[1]-a[1])[0];
       const rotStr = topRot?` — mostly in R${topRot[0]}`:'';
-      const killPct = Math.round(top.k/top.n*100);
-      lines.push(`<b style="color:var(--err)">Most dangerous:</b> their <b>${esc(top.p)}</b> — ${top.k} kill${top.k>1?'s':''} (${killPct}%)${rotStr}`);
+      const killPct = Math.round(top.kPct*100);
+      lines.push(`<b style="color:var(--err)">Most dangerous:</b> their <b>${esc(top.p)}</b> — ${top.k} kill${top.k>1?'s':''} on ${top.n} att (${killPct}%)${rotStr}`);
     }
   }
 
