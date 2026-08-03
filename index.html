@@ -289,6 +289,15 @@
   tr.rot-head td{border-bottom:none;padding-bottom:4px}
   tr.rot-detail td{border-bottom:1px solid var(--line);padding:0 6px 8px 34px}
   table.sp-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:2px}
+  table.pg-table{width:100%;border-collapse:separate;border-spacing:6px;font-size:13px}
+  table.pg-table th{text-align:left;font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:11px;padding:2px 6px}
+  table.pg-table td.pg-rot{font-family:'Saira Condensed';font-weight:800;color:var(--g2);font-size:15px;vertical-align:top;padding:8px 4px;min-width:60px}
+  table.pg-table td.pg-cell{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;vertical-align:top}
+  table.pg-table td.pg-cell.pg-empty{color:var(--ink-faint);text-align:center;background:transparent;border-style:dashed}
+  .pg-play{font-family:'Saira Condensed';font-weight:800;font-size:17px;color:#bfe0ff;background:rgba(63,169,245,.15);border:1px solid var(--g2);border-radius:6px;padding:2px 8px;display:inline-block;margin-bottom:3px}
+  .pg-meta{font-size:10px;color:var(--ink-faint)}
+  .pg-lineup{margin-top:3px;font-family:'Archivo';font-weight:400;font-size:10px;color:#bfe0ff}
+  .pg-lineup .rl-lab{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.4px;font-size:9px;color:var(--g2);margin-right:2px}
   table.sp-table th{text-align:left;color:var(--ink-faint);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-bottom:1px solid rgba(42,50,61,.5)}
   table.sp-table td{padding:4px 6px;border-bottom:1px dotted rgba(42,50,61,.4)}
   table.sp-table .sp-play{font-family:'Saira Condensed';font-weight:700;color:#bfe0ff;font-size:13px}
@@ -1050,6 +1059,71 @@ function renderLog(){
   }).join('');
 }
 
+function attacksByPassGrade(oppAtk){
+  if(!oppAtk.length) return '<p style="color:var(--ink-faint);font-size:13px">No opponent attacks logged yet.</p>';
+  const oppPasses=S.events.filter(e=>e.kind==='pass'&&e.team==='opp').sort((a,b)=>a.ts-b.ts);
+  // For each attack, find the most recent opp pass in the same set + rotation before its timestamp
+  const linked=oppAtk.map(atk=>{
+    const priorPass=[...oppPasses].reverse().find(p=>p.set===atk.set&&p.rot===atk.rot&&p.ts<=atk.ts);
+    return { ...atk, passGrade: priorPass?priorPass.grade:null };
+  }).filter(a=>a.passGrade!=null); // ignore attacks without a linked pass grade
+  if(!linked.length) return '<p style="color:var(--ink-faint);font-size:13px">Grade opponent passes with the same rotation as their attacks to see this breakdown.</p>';
+
+  // Group: rotation -> grade -> { setPlays: {name: {n,k}}, totalN, totalK }
+  const R={};
+  linked.forEach(a=>{
+    const r=a.rot||'?';
+    const g=a.passGrade;
+    const rd=R[r]=R[r]||{};
+    const gd=rd[g]=rd[g]||{n:0,k:0,setPlays:{}};
+    gd.n++; if(a.outcome==='Kill') gd.k++;
+    const sp=a.setPlay||a.setTo; if(!sp) return;
+    const sd=gd.setPlays[sp]=gd.setPlays[sp]||{n:0,k:0};
+    sd.n++; if(a.outcome==='Kill') sd.k++;
+  });
+  const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
+  const gradeColor={3:'var(--g3)',2:'var(--g2)',1:'var(--g1)'};
+  const gradeLabel={3:'3 (perfect)',2:'2 (good)',1:'1 (poor)'};
+  const order=Object.keys(R).sort((a,b)=>(a==='?'?99:+a)-(b==='?'?99:+b));
+
+  const rows=order.map(r=>{
+    // For each grade (3, 2, 1 — in order) show the top set play
+    const cells=[3,2,1].map(g=>{
+      const gd=R[r][g];
+      if(!gd || gd.n===0) return `<td class="pg-cell pg-empty">—</td>`;
+      const top=Object.entries(gd.setPlays).sort((a,b)=>b[1].n-a[1].n)[0];
+      if(!top) return `<td class="pg-cell pg-empty">—</td>`;
+      const [name,sd]=top;
+      const kPct=pct(sd.k,sd.n);
+      const kCol=sd.k/sd.n>=0.5?'var(--kill)':(sd.k/sd.n>=0.25?'var(--g1)':'var(--ink-dim)');
+      return `<td class="pg-cell">
+        <div class="pg-play">${esc(name)}</div>
+        <div class="pg-meta">${sd.n}/${gd.n} att · <span style="color:${kCol}">${kPct} K</span></div>
+      </td>`;
+    }).join('');
+    // Front row context
+    const frontRow=rotFrontRowText(r);
+    const setterLoc=rotSetterLocation(r);
+    const lineupHint = (frontRow||setterLoc) ? `<div class="pg-lineup"><span class="rl-lab">Front:</span> ${frontRow||'—'}${setterLoc?` <span class="rl-lab" style="margin-left:8px">${setterLoc}</span>`:''}</div>` : '';
+    return `<tr>
+      <td class="pg-rot">R${r}${lineupHint}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  return `<div style="margin-bottom:14px">
+    <table class="pg-table">
+      <tr>
+        <th></th>
+        <th style="color:${gradeColor[3]}">on ${gradeLabel[3]}</th>
+        <th style="color:${gradeColor[2]}">on ${gradeLabel[2]}</th>
+        <th style="color:${gradeColor[1]}">on ${gradeLabel[1]}</th>
+      </tr>
+      ${rows}
+    </table>
+    <p style="font-size:10px;color:var(--ink-faint);margin-top:6px">Top set play they ran off each pass grade in each rotation. Attacks are linked to the most recent opponent pass in the same rotation.</p>
+  </div>`;
+}
 function passStats(team){
   const m={};
   S.events.filter(e=>e.kind==='pass'&&e.team===team).forEach(e=>{
@@ -1165,13 +1239,17 @@ function renderStats(){
   html+=sectionHead('1', 'Who\'s Getting Set — by Rotation','var(--g2)');
   html+=atkByRotTable('',oppAtk);
 
+  // 1b) What they run on 3 / 2 / 1 passes (by rotation)
+  html+=sectionHead('2', 'What They Run — by Pass Grade','var(--g2)');
+  html+=attacksByPassGrade(oppAtk);
+
   // 2) Opponent Serve Receive (by rotation + overall)
-  html+=sectionHead('2', S.meta.oppName+' Serve Receive','var(--g2)');
+  html+=sectionHead('3', S.meta.oppName+' Serve Receive','var(--g2)');
   html+=rotStrip('','opp','var(--g2)');
   html+=passTable('',opp,'var(--g2)');
 
   // 3) Georgetown Serve Receive (by rotation + by player)
-  html+=sectionHead('3', S.meta.ourName+' Serve Receive','var(--accent)');
+  html+=sectionHead('4', S.meta.ourName+' Serve Receive','var(--accent)');
   html+=rotStrip('','ours','var(--accent)');
   html+=passTable('',our,'var(--accent)');
 
@@ -1413,7 +1491,9 @@ document.addEventListener('click',e=>{
     const r=t.dataset.toggleRot;
     if(!S.expandedRots) S.expandedRots={};
     S.expandedRots[r]=!S.expandedRots[r];
-    renderStats();
+    // Re-render whichever container the card lives in
+    if(t.closest('#rep-body')) openReport();   // rebuild the report modal
+    else renderStats();                         // rebuild the live stats panel
     return;
   }
   // shot chart rotation filter
