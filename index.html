@@ -281,23 +281,30 @@
   .sub-item.dim{opacity:.4}
   .sub-preview{margin-top:12px;padding:10px 12px;background:rgba(255,210,74,.08);border:1px solid rgba(255,210,74,.25);border-radius:9px;font-size:13px;color:var(--ink);min-height:20px}
   .sub-preview:empty{display:none}
+  .sub-done{background:rgba(39,209,127,.10);border:1px solid rgba(39,209,127,.3);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px}
+  .sub-done-lab{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--kill);margin-right:6px;font-size:11px}
+  .sub-done-item{display:inline-block;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:2px 7px;margin:2px 3px;font-family:'Saira Condensed';font-weight:700;color:var(--ink)}
   .autoread .ar-h{font-family:'Saira Condensed';font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--g2);margin-bottom:6px}
   .autoread .ar-l{font-size:13px;color:var(--ink);margin:3px 0;line-height:1.4}
   .sec-h{display:flex;align-items:center;gap:9px;margin:14px 0 8px;padding:6px 10px;border-left:3px solid var(--g2);background:rgba(63,169,245,.06);border-radius:0 8px 8px 0}
   .sec-h .sec-n{width:22px;height:22px;border-radius:6px;color:#04121f;font-family:'Saira Condensed';font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
   .sec-h .sec-t{font-family:'Saira Condensed';font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink)}
+  .sec-h-toggle{transition:background .12s}
+  .sec-h-toggle:active{background:rgba(63,169,245,.12)}
+  .sec-h .sec-caret{margin-left:auto;color:var(--ink-faint);font-size:14px;padding:0 6px}
   tr.rot-head td{border-bottom:none;padding-bottom:4px}
   tr.rot-detail td{border-bottom:1px solid var(--line);padding:0 6px 8px 34px}
   table.sp-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:2px}
-  table.pg-table{width:100%;border-collapse:separate;border-spacing:6px;font-size:13px}
-  table.pg-table th{text-align:left;font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:11px;padding:2px 6px}
-  table.pg-table td.pg-rot{font-family:'Saira Condensed';font-weight:800;color:var(--g2);font-size:15px;vertical-align:top;padding:8px 4px;min-width:60px}
-  table.pg-table td.pg-cell{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;vertical-align:top}
-  table.pg-table td.pg-cell.pg-empty{color:var(--ink-faint);text-align:center;background:transparent;border-style:dashed}
-  .pg-play{font-family:'Saira Condensed';font-weight:800;font-size:17px;color:#bfe0ff;background:rgba(63,169,245,.15);border:1px solid var(--g2);border-radius:6px;padding:2px 8px;display:inline-block;margin-bottom:3px}
-  .pg-meta{font-size:10px;color:var(--ink-faint)}
-  .pg-lineup{margin-top:3px;font-family:'Archivo';font-weight:400;font-size:10px;color:#bfe0ff}
-  .pg-lineup .rl-lab{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.4px;font-size:9px;color:var(--g2);margin-right:2px}
+  .pgc-rot{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+  .pgc-rot-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .pgc-r{font-family:'Saira Condensed';font-weight:800;font-size:20px;color:var(--g2)}
+  .pgc-lineup{background:rgba(63,169,245,.08);border:1px solid rgba(63,169,245,.2);border-radius:5px;padding:2px 7px;font-size:11px;color:#bfe0ff}
+  .pgc-lineup .rl-lab{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:var(--g2);margin-right:3px}
+  .pgc-blocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+  .pgc-block{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .pgc-block-h{font-family:'Saira Condensed';font-weight:800;text-transform:uppercase;letter-spacing:.5px;font-size:11px;margin-bottom:6px}
+  .pgc-summary{font-size:13px;color:var(--ink);background:rgba(255,255,255,.03);border-left:3px solid var(--g2);padding:5px 8px;margin-bottom:6px;border-radius:0 5px 5px 0}
+  .pgc-top{font-family:'Saira Condensed';font-weight:800;color:#bfe0ff;background:rgba(63,169,245,.15);border:1px solid var(--g2);border-radius:5px;padding:1px 8px;font-size:15px;margin:0 2px}
   table.sp-table th{text-align:left;color:var(--ink-faint);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-bottom:1px solid rgba(42,50,61,.5)}
   table.sp-table td{padding:4px 6px;border-bottom:1px dotted rgba(42,50,61,.4)}
   table.sp-table .sp-play{font-family:'Saira Condensed';font-weight:700;color:#bfe0ff;font-size:13px}
@@ -526,10 +533,10 @@
   <div class="modal-card" style="width:min(560px,100%)">
     <div class="modal-head">
       <h2>Substitution</h2>
-      <button class="hbtn" id="sub-close">✕</button>
+      <button class="hbtn" id="sub-close" style="background:var(--accent);color:#1a1205;font-weight:700;padding:9px 18px">Done ✓</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:13px;color:var(--ink-dim);margin:0 0 12px">Tap the player <b>coming out</b>, then the player <b>going in</b>. The swap applies from now forward.</p>
+      <p style="font-size:13px;color:var(--ink-dim);margin:0 0 12px">Tap out-player, then in-player. Swap applies immediately. <b>Keep going</b> to chain multiple subs — tap <b>Done</b> when finished.</p>
       <div class="sub-cols">
         <div>
           <div class="sub-h">On court</div>
@@ -541,10 +548,6 @@
         </div>
       </div>
       <div class="sub-preview" id="sub-preview"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
-        <button class="hbtn" id="sub-cancel">Cancel</button>
-        <button class="btn-primary" id="sub-confirm" style="padding:11px 20px">Confirm swap</button>
-      </div>
     </div>
   </div>
 </div>
@@ -616,7 +619,7 @@ const DEFAULT_PLAYS = PLAY_GROUPS.flatMap(g=>g.plays);
 function freshState(meta){
   return {
     meta, setNo:1, ourPts:0, oppPts:0, setScores:{}, oppLineup:{},
-    atkTeam:'opp', passTeam:'ours', ourRot:1, oppRot:1, atkMode:'zones', chartRot:'all', chartKillsOnly:false, expandedRots:{},
+    atkTeam:'opp', passTeam:'ours', ourRot:1, oppRot:1, atkMode:'zones', chartRot:'all', chartKillsOnly:false, expandedRots:{}, passGradeOpen:false,
     selPasser:null, selType:'Hard',
     combo:[], setPlay:null,
     pending:null, events:[], seq:1
@@ -1062,66 +1065,91 @@ function renderLog(){
 function attacksByPassGrade(oppAtk){
   if(!oppAtk.length) return '<p style="color:var(--ink-faint);font-size:13px">No opponent attacks logged yet.</p>';
   const oppPasses=S.events.filter(e=>e.kind==='pass'&&e.team==='opp').sort((a,b)=>a.ts-b.ts);
-  // For each attack, find the most recent opp pass in the same set + rotation before its timestamp
   const linked=oppAtk.map(atk=>{
     const priorPass=[...oppPasses].reverse().find(p=>p.set===atk.set&&p.rot===atk.rot&&p.ts<=atk.ts);
     return { ...atk, passGrade: priorPass?priorPass.grade:null };
-  }).filter(a=>a.passGrade!=null); // ignore attacks without a linked pass grade
+  }).filter(a=>a.passGrade!=null);
   if(!linked.length) return '<p style="color:var(--ink-faint);font-size:13px">Grade opponent passes with the same rotation as their attacks to see this breakdown.</p>';
 
-  // Group: rotation -> grade -> { setPlays: {name: {n,k}}, totalN, totalK }
+  // Group: rotation -> grade -> combos map (same shape as atkByRotTable)
   const R={};
   linked.forEach(a=>{
-    const r=a.rot||'?';
-    const g=a.passGrade;
+    const r=a.rot||'?', g=a.passGrade;
     const rd=R[r]=R[r]||{};
-    const gd=rd[g]=rd[g]||{n:0,k:0,setPlays:{}};
+    const gd=rd[g]=rd[g]||{n:0,k:0,combos:{}};
     gd.n++; if(a.outcome==='Kill') gd.k++;
-    const sp=a.setPlay||a.setTo; if(!sp) return;
-    const sd=gd.setPlays[sp]=gd.setPlays[sp]||{n:0,k:0};
-    sd.n++; if(a.outcome==='Kill') sd.k++;
+    const plays=(a.combo&&a.combo.length)?a.combo:(a.setPlay?[a.setPlay]:['—']);
+    const key=plays.join(' · ');
+    const c=gd.combos[key]=gd.combos[key]||{plays:plays.slice(),n:0,sets:{}};
+    c.n++;
+    const sp=a.setPlay||a.setTo||plays[plays.length-1];
+    const s=c.sets[sp]=c.sets[sp]||{n:0,k:0};
+    s.n++; if(a.outcome==='Kill') s.k++;
   });
   const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
-  const gradeColor={3:'var(--g3)',2:'var(--g2)',1:'var(--g1)'};
-  const gradeLabel={3:'3 (perfect)',2:'2 (good)',1:'1 (poor)'};
+  const gradeMeta={
+    3:{lab:'on 3-pass (perfect)',col:'var(--g3)'},
+    2:{lab:'on 2-pass (good)',   col:'var(--g2)'},
+    1:{lab:'on 1-pass (poor)',   col:'var(--g1)'},
+  };
   const order=Object.keys(R).sort((a,b)=>(a==='?'?99:+a)-(b==='?'?99:+b));
 
-  const rows=order.map(r=>{
-    // For each grade (3, 2, 1 — in order) show the top set play
-    const cells=[3,2,1].map(g=>{
-      const gd=R[r][g];
-      if(!gd || gd.n===0) return `<td class="pg-cell pg-empty">—</td>`;
-      const top=Object.entries(gd.setPlays).sort((a,b)=>b[1].n-a[1].n)[0];
-      if(!top) return `<td class="pg-cell pg-empty">—</td>`;
-      const [name,sd]=top;
-      const kPct=pct(sd.k,sd.n);
-      const kCol=sd.k/sd.n>=0.5?'var(--kill)':(sd.k/sd.n>=0.25?'var(--g1)':'var(--ink-dim)');
-      return `<td class="pg-cell">
-        <div class="pg-play">${esc(name)}</div>
-        <div class="pg-meta">${sd.n}/${gd.n} att · <span style="color:${kCol}">${kPct} K</span></div>
-      </td>`;
-    }).join('');
-    // Front row context
+  const rotCards=order.map(r=>{
+    // Which grades have data for this rotation?
+    const grades=[3,2,1].filter(g=>R[r][g] && R[r][g].n>0);
+    if(!grades.length) return '';
     const frontRow=rotFrontRowText(r);
     const setterLoc=rotSetterLocation(r);
-    const lineupHint = (frontRow||setterLoc) ? `<div class="pg-lineup"><span class="rl-lab">Front:</span> ${frontRow||'—'}${setterLoc?` <span class="rl-lab" style="margin-left:8px">${setterLoc}</span>`:''}</div>` : '';
-    return `<tr>
-      <td class="pg-rot">R${r}${lineupHint}</td>
-      ${cells}
-    </tr>`;
-  }).join('');
+    const lineupHint = (frontRow||setterLoc) ? `<div class="pgc-lineup"><span class="rl-lab">Front:</span> ${frontRow||'—'}${setterLoc?` <span class="rl-lab" style="margin-left:8px">${setterLoc}</span>`:''}</div>` : '';
+
+    const gradeBlocks=grades.map(g=>{
+      const gd=R[r][g];
+      const gm=gradeMeta[g];
+      // Render combos with set play highlighted (same style as atkByRotTable)
+      const combos=Object.entries(gd.combos).sort((a,b)=>b[1].n-a[1].n).map(([key,c])=>{
+        const chips=c.plays.map(p=>{
+          const s=c.sets[p];
+          if(!s) return `<span class="rc-play">${esc(p)}</span>`;
+          const cls = s.k>0 ? 'rc-play rc-set rc-kill' : 'rc-play rc-set';
+          const kmark = s.k>0 ? ` ${s.k}<span style="font-size:9px">K</span>` : '';
+          return `<span class="${cls}">${esc(p)}${kmark}</span>`;
+        }).join('<span class="rc-arrow">›</span>');
+        const cK=Object.values(c.sets).reduce((a,s)=>a+s.k,0);
+        const runPct=pct(c.n,gd.n);
+        const scorePct=pct(cK,c.n);
+        const scorePctCol = c.n && cK/c.n>=0.5?'var(--kill)':(c.n && cK/c.n>=0.25?'var(--g1)':'var(--ink-dim)');
+        return `<div class="rc-combo" style="font-size:12px">
+          <span class="rc-count">×${c.n} <span class="rc-pct">${runPct}</span></span>
+          ${chips}
+          <span class="rc-score" style="color:${scorePctCol}">→ ${scorePct} scored</span>
+        </div>`;
+      }).join('');
+      // Top set play summary — the one-line answer to "what will they set?"
+      const setTotals={};
+      Object.values(gd.combos).forEach(c=>{
+        Object.entries(c.sets).forEach(([p,s])=>{
+          const t=setTotals[p]=setTotals[p]||{n:0,k:0};
+          t.n+=s.n; t.k+=s.k;
+        });
+      });
+      const topSet=Object.entries(setTotals).sort((a,b)=>b[1].n-a[1].n)[0];
+      const summaryLine = topSet ? `<div class="pgc-summary">Sets <span class="pgc-top">${esc(topSet[0])}</span> <b>${pct(topSet[1].n,gd.n)}</b> (${topSet[1].n}/${gd.n}) — ${pct(topSet[1].k,topSet[1].n)} K</div>` : '';
+      return `<div class="pgc-block">
+        <div class="pgc-block-h" style="color:${gm.col}">${gm.lab} · ${gd.n} att</div>
+        ${summaryLine}
+        ${combos}
+      </div>`;
+    }).join('');
+
+    return `<div class="pgc-rot">
+      <div class="pgc-rot-h"><span class="pgc-r">R${r}</span>${lineupHint}</div>
+      <div class="pgc-blocks">${gradeBlocks}</div>
+    </div>`;
+  }).filter(Boolean).join('');
 
   return `<div style="margin-bottom:14px">
-    <table class="pg-table">
-      <tr>
-        <th></th>
-        <th style="color:${gradeColor[3]}">on ${gradeLabel[3]}</th>
-        <th style="color:${gradeColor[2]}">on ${gradeLabel[2]}</th>
-        <th style="color:${gradeColor[1]}">on ${gradeLabel[1]}</th>
-      </tr>
-      ${rows}
-    </table>
-    <p style="font-size:10px;color:var(--ink-faint);margin-top:6px">Top set play they ran off each pass grade in each rotation. Attacks are linked to the most recent opponent pass in the same rotation.</p>
+    ${rotCards}
+    <p style="font-size:10px;color:var(--ink-faint);margin-top:6px">For each rotation and pass grade: the top-line summary says what they set most, then the full combinations they showed with the set play highlighted (green = kill).</p>
   </div>`;
 }
 function passStats(team){
@@ -1239,9 +1267,9 @@ function renderStats(){
   html+=sectionHead('1', 'Who\'s Getting Set — by Rotation','var(--g2)');
   html+=atkByRotTable('',oppAtk);
 
-  // 1b) What they run on 3 / 2 / 1 passes (by rotation)
-  html+=sectionHead('2', 'What They Run — by Pass Grade','var(--g2)');
-  html+=attacksByPassGrade(oppAtk);
+  // 1b) What they run on 3 / 2 / 1 passes (by rotation) — collapsible in live stats
+  html+=collapsibleSectionHead('2', 'What They Run — by Pass Grade','var(--g2)', S.passGradeOpen, 'passGrade');
+  if(S.passGradeOpen) html+=attacksByPassGrade(oppAtk);
 
   // 2) Opponent Serve Receive (by rotation + overall)
   html+=sectionHead('3', S.meta.oppName+' Serve Receive','var(--g2)');
@@ -1260,6 +1288,14 @@ function renderStats(){
 }
 function sectionHead(num,title,col){
   return `<div class="sec-h" style="border-left-color:${col}"><span class="sec-n" style="background:${col}">${num}</span><span class="sec-t">${title}</span></div>`;
+}
+function collapsibleSectionHead(num,title,col,isOpen,toggleKey){
+  const caret = isOpen ? '▾' : '▸';
+  return `<div class="sec-h sec-h-toggle" data-section-toggle="${toggleKey}" style="border-left-color:${col};cursor:pointer">
+    <span class="sec-n" style="background:${col}">${num}</span>
+    <span class="sec-t">${title}</span>
+    <span class="sec-caret">${caret}</span>
+  </div>`;
 }
 
 // distinct colors for plays (set call) on the shot chart
@@ -1484,8 +1520,15 @@ function avgColor(a){ return a>=2.4?'var(--g3)':a>=2.0?'var(--g2)':a>=1.5?'var(-
 
 /* ============ INTERACTIONS ============ */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-grade],[data-p],[data-team],[data-mode],[data-play],[data-addplay],[data-addplay-go],[data-addplay-cancel],[data-setplay],[data-type],[data-out],[data-del],[data-pt],[data-rot],[data-rotnext],[data-arot],[data-arotnext],[data-chartrot],[data-chartkills],[data-toggle-rot]');
+  const t=e.target.closest('[data-grade],[data-p],[data-team],[data-mode],[data-play],[data-addplay],[data-addplay-go],[data-addplay-cancel],[data-setplay],[data-type],[data-out],[data-del],[data-pt],[data-rot],[data-rotnext],[data-arot],[data-arotnext],[data-chartrot],[data-chartkills],[data-toggle-rot],[data-section-toggle]');
   if(!t) return;
+  // collapsible section toggle
+  if(t.dataset.sectionToggle!==undefined){
+    const key=t.dataset.sectionToggle;
+    if(key==='passGrade'){ S.passGradeOpen=!S.passGradeOpen; }
+    renderStats();
+    return;
+  }
   // expand/collapse rotation detail
   if(t.dataset.toggleRot!==undefined){
     const r=t.dataset.toggleRot;
@@ -1598,9 +1641,14 @@ function setRot(n){
 function logPass(grade){
   const rot = S.passTeam==='ours'?S.ourRot:S.oppRot;
   const ev={id:uid(),kind:'pass',team:S.passTeam,player:S.selPasser||'TEAM',grade,rot,set:S.setNo,ts:Date.now()};
+  // A 0-pass = ace against the passing team → point for the other team
+  if(grade===0){
+    if(S.passTeam==='ours') S.oppPts++; else S.ourPts++;
+    ev.scored=true;   // flag so undo/delete reverses the point
+  }
   S.events.push(ev);
   flashGrade(grade);
-  renderLog(); renderStats(); save();
+  renderHeader(); renderLog(); renderStats(); save();
 }
 function flashGrade(g){
   const el=document.querySelector(`.grade.g${g}`);
@@ -1616,6 +1664,9 @@ function delEvent(id){
   if(e.kind==='attack'){ // reverse score
     if(e.outcome==='Kill'){ e.team==='ours'?S.ourPts--:S.oppPts--; }
     else if(e.outcome==='Error'||e.outcome==='Blocked'){ e.team==='ours'?S.oppPts--:S.ourPts--; }
+  } else if(e.kind==='pass' && e.scored){ // reverse ace point
+    if(e.team==='ours') S.oppPts=Math.max(0,S.oppPts-1);
+    else S.ourPts=Math.max(0,S.ourPts-1);
   }
   S.events.splice(i,1); renderAll(); save();
 }
@@ -1674,11 +1725,9 @@ $('#lineup-save').onclick=()=>{ save(); $('#lineup').classList.add('hidden'); re
 let subSel = { out:null, in:null };
 $('#btn-sub').onclick=()=>{ openSubModal(); };
 $('#sub-close').onclick=()=>{ $('#submod').classList.add('hidden'); };
-$('#sub-cancel').onclick=()=>{ $('#submod').classList.add('hidden'); };
-$('#sub-confirm').onclick=()=>{ commitSub(); };
 
 function openSubModal(){
-  subSel={out:null,in:null};
+  subSel={out:null,in:null,done:[]};
   renderSubModal();
   $('#submod').classList.remove('hidden');
 }
@@ -1701,29 +1750,32 @@ function renderSubModal(){
     return `<div class="sub-item ${on?'on':''}" data-sub-in="${esc(j)}">#${esc(j)}</div>`;
   }).join('') : `<p style="color:var(--ink-faint);font-size:12px;margin:0">Everyone on the roster is on court. Add more jerseys in Edit teams &amp; rosters.</p>`;
 
-  // preview
-  if(subSel.out && subSel.in){
-    const outPl=onCourt.find(p=>p.jersey===subSel.out);
-    const posPicker = `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-      <span style="font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.5px;font-weight:700">#${esc(subSel.in)} plays:</span>
-      ${POSITIONS.map(p=>`<button class="pill ${(subSel.newPos||outPl.position)===p?'on':''}" data-sub-pos="${p}">${p}</button>`).join('')}
+  // preview: recent swaps done in this session + current selection prompt
+  let previewHtml='';
+  if(subSel.done && subSel.done.length){
+    const swaps = subSel.done.map(s=>`<span class="sub-done-item"><b>#${esc(s.in)}</b> ← #${esc(s.out)}</span>`).join('');
+    previewHtml += `<div class="sub-done">
+      <span class="sub-done-lab">✓ Done this session:</span> ${swaps}
     </div>`;
-    $('#sub-preview').innerHTML = `<b>#${esc(subSel.in)}</b> comes in for <b>#${esc(subSel.out)}</b>${outPl.position?` (was ${outPl.position})`:''} in position ${outPl.pos}.${posPicker}`;
-    document.querySelectorAll('#sub-preview [data-sub-pos]').forEach(b=>{
-      b.onclick=()=>{ subSel.newPos=b.dataset.subPos; renderSubModal(); };
-    });
-  } else if(subSel.out){
-    $('#sub-preview').innerHTML = `Now tap who's coming <b>in</b> from the bench.`;
-  } else {
-    $('#sub-preview').innerHTML = ``;
   }
+  if(subSel.out){
+    const outPl=onCourt.find(p=>p.jersey===subSel.out);
+    previewHtml += `<div>Bringing out <b>#${esc(subSel.out)}</b>${outPl && outPl.position?` (${outPl.position})`:''}. Tap the sub coming <b>in</b>.</div>`;
+  } else if(subSel.done && subSel.done.length){
+    previewHtml += `<div>Tap another player coming out, or close when done.</div>`;
+  }
+  $('#sub-preview').innerHTML = previewHtml;
 
   // wire clicks
   document.querySelectorAll('#sub-on-court [data-sub-out]').forEach(el=>{
     el.onclick=()=>{ subSel.out=el.dataset.subOut; renderSubModal(); };
   });
   document.querySelectorAll('#sub-bench [data-sub-in]').forEach(el=>{
-    el.onclick=()=>{ subSel.in=el.dataset.subIn; renderSubModal(); };
+    el.onclick=()=>{
+      subSel.in=el.dataset.subIn;
+      // commit immediately — position inherits from out-player
+      commitSub();
+    };
   });
 }
 function commitSub(){
@@ -1736,9 +1788,14 @@ function commitSub(){
   if(outPos==null) return;
   const newPosition = subSel.newPos || outPosition;
   S.oppLineup[outPos] = { jersey:subSel.in, position:newPosition };
+  // remember this swap so we can show a running list of what changed
+  if(!subSel.done) subSel.done=[];
+  subSel.done.push({out:subSel.out,in:subSel.in,pos:outPos});
+  // reset selection so the user can immediately start another sub
+  subSel.out=null; subSel.in=null; subSel.newPos=null;
   save();
-  $('#submod').classList.add('hidden');
-  renderAll();
+  renderSubModal();      // stay in modal; refresh lists
+  renderAll();           // update everything behind the modal
 }
 
 const POSITIONS=['OH','MB','S','Oppo','L'];
@@ -1900,21 +1957,26 @@ function openReport(){
   </div>
 
   <div class="rep-sec" style="margin-top:18px">
-    <h4>2 · ${esc(S.meta.oppName)} Serve Receive</h4>
+    <h4>2 · What They Run — by Pass Grade</h4>
+    ${attacksByPassGrade(oppAtk)}
+  </div>
+
+  <div class="rep-sec" style="margin-top:18px">
+    <h4>3 · ${esc(S.meta.oppName)} Serve Receive</h4>
     <div style="margin-bottom:8px;color:var(--ink-dim);font-size:13px">Overall <b style="color:${oppPassAll.n?avgColor(oppPassAll.sum/oppPassAll.n):'var(--ink-faint)'}">${oppPassAll.n?(oppPassAll.sum/oppPassAll.n).toFixed(2):'—'}</b> · ${oppPassAll.n} passes graded</div>
     ${repRotStripOnly('opp','var(--g2)')}
     ${Object.keys(opp).length?repPassTable(opp):'<p style="color:var(--ink-faint);font-size:13px">No opponent passes graded.</p>'}
   </div>
 
   <div class="rep-sec" style="margin-top:18px">
-    <h4>3 · ${esc(S.meta.ourName)} Serve Receive</h4>
+    <h4>4 · ${esc(S.meta.ourName)} Serve Receive</h4>
     <div style="margin-bottom:8px;color:var(--ink-dim);font-size:13px">Overall <b style="color:${ourPassAll.n?avgColor(ourPassAll.sum/ourPassAll.n):'var(--ink-faint)'}">${ourPassAll.n?(ourPassAll.sum/ourPassAll.n).toFixed(2):'—'}</b> · ${ourPassAll.n} passes graded</div>
     ${repRotStripOnly('ours','var(--accent)')}
     ${Object.keys(our).length?repPassTable(our):'<p style="color:var(--ink-faint);font-size:13px">No passes graded yet.</p>'}
   </div>
 
   <div class="rep-sec" style="margin-top:18px">
-    <h4>4 · Rotational Analysis — full picture per rotation</h4>
+    <h4>5 · Rotational Analysis — full picture per rotation</h4>
     ${repRotAnalysis()}
   </div>
 
