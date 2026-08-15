@@ -351,22 +351,22 @@
       </div>
       <div class="fld">
         <label>Our Roster — jersey #s</label>
-        <input id="su-ourroster" placeholder="1, 4, 7, 10, 12, 15">
+        <input id="su-ourroster" name="ros-x0" data-form-type="other" placeholder="1, 4, 7, 10, 12, 15" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
         <div class="roster-help">Comma-separated.</div>
       </div>
       <div class="fld">
         <label>Our Passers — jersey #s (subset of roster)</label>
-        <input id="su-ourpassers" placeholder="e.g. 4, 7, 12">
+        <input id="su-ourpassers" name="pas-x0" data-form-type="other" placeholder="e.g. 4, 7, 12" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
         <div class="roster-help">Only these players show as tap targets when grading (OHs + libero, usually). Leave blank to show everyone.</div>
       </div>
       <div class="fld">
         <label>Opponent Roster — jersey #s</label>
-        <input id="su-opproster" placeholder="2, 3, 5, 8, 11, 14">
+        <input id="su-opproster" name="ros-x1" data-form-type="other" placeholder="2, 3, 5, 8, 11, 14" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
         <div class="roster-help">Optional — leave blank to grade opponent as a team.</div>
       </div>
       <div class="fld">
         <label>Opponent Passers — jersey #s (subset of opp roster)</label>
-        <input id="su-opppassers" placeholder="e.g. 3, 8, 11">
+        <input id="su-opppassers" name="pas-x1" data-form-type="other" placeholder="e.g. 3, 8, 11" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
         <div class="roster-help">Only these players show as tap targets when grading opponent. Leave blank to show their full roster.</div>
       </div>
     </div>
@@ -646,7 +646,8 @@ async function boot(){
   }
 }
 function parseRoster(str){
-  return str.split(/[,\s]+/).map(x=>x.trim()).filter(Boolean);
+  // Any run of non-alphanumeric characters is a separator (comma, space, semicolon, curly quote, etc.)
+  return String(str||'').split(/[^A-Za-z0-9]+/).map(x=>x.trim()).filter(Boolean);
 }
 $('#su-start').onclick = ()=>{
   const meta = {
@@ -660,9 +661,9 @@ $('#su-start').onclick = ()=>{
     date: new Date().toISOString().slice(0,10)
   };
   if(meta.ourRoster.length===0) meta.ourRoster=['1','2','3','4','5','6'];
-  // ensure any passer listed is in the roster
-  meta.ourPassers = meta.ourPassers.filter(p=>meta.ourRoster.includes(p));
-  meta.oppPassers = meta.oppPassers.filter(p=>meta.oppRoster.includes(p));
+  // Auto-add any listed passer missing from the roster (so nothing gets silently dropped)
+  meta.ourPassers.forEach(p=>{ if(!meta.ourRoster.includes(p)) meta.ourRoster.push(p); });
+  meta.oppPassers.forEach(p=>{ if(!meta.oppRoster.includes(p)) meta.oppRoster.push(p); });
   S = freshState(meta);
   S.selPasser = (meta.ourPassers.length?meta.ourPassers:meta.ourRoster)[0];
   startApp();
@@ -1708,8 +1709,11 @@ $('#menu-edit').onclick=()=>{
     S.meta.oppName=$('#su-oppname').value.trim()||'Opponent';
     S.meta.ourRoster=parseRoster($('#su-ourroster').value);
     S.meta.oppRoster=parseRoster($('#su-opproster').value);
-    S.meta.ourPassers=parseRoster($('#su-ourpassers').value).filter(p=>S.meta.ourRoster.includes(p));
-    S.meta.oppPassers=parseRoster($('#su-opppassers').value).filter(p=>S.meta.oppRoster.includes(p));
+    // Auto-add any listed passer that's missing from the roster (so nothing gets silently dropped)
+    S.meta.ourPassers=parseRoster($('#su-ourpassers').value);
+    S.meta.ourPassers.forEach(p=>{ if(!S.meta.ourRoster.includes(p)) S.meta.ourRoster.push(p); });
+    S.meta.oppPassers=parseRoster($('#su-opppassers').value);
+    S.meta.oppPassers.forEach(p=>{ if(!S.meta.oppRoster.includes(p)) S.meta.oppRoster.push(p); });
     if(!S.meta.ourRoster.length)S.meta.ourRoster=['1','2','3','4','5','6'];
     $('#setup').classList.add('hidden'); $('#app').classList.remove('hidden');
     renderAll(); save();
