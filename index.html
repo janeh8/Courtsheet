@@ -116,7 +116,9 @@
   .ob.kill{background:rgba(39,209,127,.16);color:var(--kill);border-color:rgba(39,209,127,.4)}
   .ob.err{background:rgba(255,93,93,.16);color:var(--err);border-color:rgba(255,93,93,.4)}
   .ob.blk{background:rgba(176,107,255,.16);color:var(--blk);border-color:rgba(176,107,255,.4)}
+  .ob.blkip{background:rgba(176,107,255,.08);color:#c9a8ff;border-color:rgba(176,107,255,.28)}
   .ob.inp{background:rgba(125,141,160,.16);color:var(--inp);border-color:rgba(125,141,160,.4)}
+  .ob.free{background:rgba(90,160,220,.12);color:#7bb8e8;border-color:rgba(90,160,220,.32)}
   .ob:active{transform:scale(.96)}
   .ob.cancel{margin-left:auto;background:var(--panel-2);color:var(--ink-dim);border-color:var(--line)}
 
@@ -245,6 +247,25 @@
   .chart-legend .cl{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-dim);font-weight:600}
   .chart-legend .cl-dot{width:11px;height:11px;border-radius:50%;display:inline-block}
   .autoread{background:linear-gradient(180deg,rgba(63,169,245,.10),rgba(63,169,245,.03));border:1px solid rgba(63,169,245,.3);border-radius:11px;padding:11px 13px;margin-bottom:14px}
+  .rn-card{background:linear-gradient(180deg,rgba(255,210,74,.10),rgba(255,210,74,.02));border:1.5px solid rgba(255,210,74,.45);border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:0 4px 14px rgba(255,210,74,.08)}
+  .rn-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .rn-title{font-family:'Saira Condensed';font-weight:800;text-transform:uppercase;letter-spacing:1.2px;font-size:15px;color:var(--accent)}
+  .rn-sub{font-family:'Archivo';font-size:11px;color:var(--ink-faint);font-weight:500}
+  .rn-rots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px}
+  .rn-rot{padding:12px 4px;background:var(--panel-2);border:1.5px solid var(--line);border-radius:10px;font-family:'Saira Condensed';font-weight:800;font-size:18px;letter-spacing:.5px;color:var(--ink-dim);cursor:pointer;transition:all .12s}
+  .rn-rot:active{transform:scale(.94)}
+  .rn-rot.on{background:var(--accent);color:#1a1205;border-color:var(--accent);box-shadow:0 3px 10px rgba(255,210,74,.35);font-size:20px}
+  .rn-lineup{background:rgba(63,169,245,.10);border:1px solid rgba(63,169,245,.3);border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:13px;color:#bfe0ff}
+  .rn-lineup .rl-lab{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:var(--g2);margin-right:4px}
+  .rn-lineup-empty{background:rgba(125,141,160,.10);border-color:rgba(125,141,160,.25);color:var(--ink-faint);font-size:11px;font-style:italic}
+  .rn-line{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 14px;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;font-size:16px}
+  .rn-line .rn-lbl{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:11px;color:var(--ink-faint)}
+  .rn-line .rn-play{font-family:'Saira Condensed';font-weight:800;font-size:24px;color:var(--accent);background:rgba(255,210,74,.14);border:1.5px solid var(--accent);border-radius:8px;padding:3px 12px;line-height:1}
+  .rn-line .rn-freq{font-family:'Saira Condensed';font-weight:800;font-size:18px;color:var(--ink)}
+  .rn-line .rn-arrow{color:var(--ink-faint);font-size:16px}
+  .rn-line .rn-kpct{font-family:'Saira Condensed';font-weight:800;font-size:20px}
+  .rn-line .rn-n{font-family:'Archivo';font-size:11px;color:var(--ink-faint);margin-left:auto}
+  .rn-empty{background:rgba(125,141,160,.08);color:var(--ink-faint);font-size:13px;font-style:italic;justify-content:center;text-align:center}
   .lineup-wrap{display:grid;grid-template-columns:1fr 220px;gap:16px}
   @media(max-width:680px){.lineup-wrap{grid-template-columns:1fr}}
   .lineup-court{background:var(--court);border-radius:12px;padding:14px;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr auto 1fr;gap:10px;position:relative;min-height:340px}
@@ -478,7 +499,9 @@
             <button class="ob kill" data-out="Kill">Kill</button>
             <button class="ob err" data-out="Error">Error</button>
             <button class="ob blk" data-out="Blocked">Blocked</button>
+            <button class="ob blkip" data-out="Blk in play">Blk&nbsp;in&nbsp;Play</button>
             <button class="ob inp" data-out="In play">In&nbsp;Play</button>
+            <button class="ob free" data-out="Freeball">Freeball</button>
           </div>
         </div>
       </div>
@@ -619,7 +642,7 @@ const DEFAULT_PLAYS = PLAY_GROUPS.flatMap(g=>g.plays);
 function freshState(meta){
   return {
     meta, setNo:1, ourPts:0, oppPts:0, setScores:{}, oppLineup:{},
-    atkTeam:'opp', passTeam:'ours', ourRot:1, oppRot:1, atkMode:'zones', chartRot:'all', chartKillsOnly:false, expandedRots:{}, passGradeOpen:false,
+    atkTeam:'opp', passTeam:'ours', ourRot:1, oppRot:1, atkMode:'zones', chartRot:'all', chartKillsOnly:false, expandedRots:{}, passGradeOpen:false, rightNowRot:1,
     selPasser:null, selType:'Hard',
     combo:[], setPlay:null,
     pending:null, events:[], seq:1
@@ -677,6 +700,7 @@ function startApp(){
   if(!S.setScores) S.setScores={};
   if(!S.oppLineup) S.oppLineup={};
   if(!S.expandedRots) S.expandedRots={};
+  if(!S.rightNowRot) S.rightNowRot=1;
   if(!S.meta.plays) S.meta.plays=DEFAULT_PLAYS.slice();
   else DEFAULT_PLAYS.forEach(p=>{ if(!S.meta.plays.includes(p)) S.meta.plays.push(p); });
   if(!S.combo) S.combo=[];
@@ -1183,6 +1207,62 @@ function rotStrip(title,team,col){
     ${title?`<div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:${col};text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">${title}</div>`:''}
     <div style="display:flex;gap:5px">${cells}</div></div>`;
 }
+function rightNowCard(oppAtk){
+  const r=S.rightNowRot||1;
+  const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
+
+  // Rotation selector buttons — always visible, big and thumbable
+  const rotBtns=[1,2,3,4,5,6].map(i=>
+    `<button class="rn-rot ${i===r?'on':''}" data-rnrot="${i}">R${i}</button>`
+  ).join('');
+
+  // Front row + setter context for the selected rotation
+  const frontRow=rotFrontRowText(r);
+  const setterLoc=rotSetterLocation(r);
+  const lineup = (frontRow||setterLoc) ? `<div class="rn-lineup"><span class="rl-lab">Front:</span> ${frontRow||'—'}${setterLoc?` <span class="rl-lab" style="margin-left:10px">${setterLoc}</span>`:''}</div>` : `<div class="rn-lineup rn-lineup-empty">Set the opponent lineup to see who's on court in R${r} · <span style="color:var(--g2)">⋯ menu → Set opponent lineup</span></div>`;
+
+  // The ONE line: what they set most in this rotation, with kill %
+  const rotAtks=oppAtk.filter(e=>+e.rot===r);
+  let line;
+  if(rotAtks.length<3){
+    line = `<div class="rn-line rn-empty">Not enough data yet in R${r} — <b>${rotAtks.length}</b> attack${rotAtks.length===1?'':'s'} logged. Watch and trust your eyes.</div>`;
+  } else {
+    // Aggregate set plays
+    const setPlays={};
+    rotAtks.forEach(e=>{
+      const sp=e.setPlay||e.setTo; if(!sp) return;
+      const d=setPlays[sp]=setPlays[sp]||{n:0,k:0};
+      d.n++; if(e.outcome==='Kill') d.k++;
+    });
+    const top=Object.entries(setPlays).sort((a,b)=>b[1].n-a[1].n)[0];
+    if(!top){
+      line = `<div class="rn-line rn-empty">Attacks logged in R${r} but no set-play tagged.</div>`;
+    } else {
+      const [name,d]=top;
+      const freqPct=pct(d.n,rotAtks.length);
+      const kPct=pct(d.k,d.n);
+      const kCol = d.n && d.k/d.n>=0.5?'var(--kill)':(d.n && d.k/d.n>=0.25?'var(--g1)':'var(--ink-dim)');
+      line = `<div class="rn-line">
+        <span class="rn-lbl">They set</span>
+        <span class="rn-play">${esc(name)}</span>
+        <span class="rn-freq">${freqPct}</span>
+        <span class="rn-arrow">→</span>
+        <span class="rn-kpct" style="color:${kCol}">${kPct} kill</span>
+        <span class="rn-n">· ${rotAtks.length} atk logged</span>
+      </div>`;
+    }
+  }
+
+  return `<div class="rn-card">
+    <div class="rn-head">
+      <span class="rn-title">Right Now</span>
+      <span class="rn-sub">Rotation-anchored — tap R# to switch</span>
+    </div>
+    <div class="rn-rots">${rotBtns}</div>
+    ${lineup}
+    ${line}
+  </div>`;
+}
 function autoRead(){
   const lines=[];
   const oppAtk=S.events.filter(e=>e.kind==='attack'&&e.team==='opp'&&e.rot);
@@ -1262,6 +1342,7 @@ function renderStats(){
   const our=passStats('ours'); const opp=passStats('opp');
   const oppAtk=S.events.filter(e=>e.kind==='attack'&&e.team==='opp');
   let html='';
+  html+=rightNowCard(oppAtk);
   html+=autoRead();
 
   // 1) Who's getting set & how (opponent attack by rotation — LEADS)
@@ -1321,10 +1402,10 @@ function shotChart(allOpp){
   rotsPresent.forEach(r=>{ rotBtns+=`<button class="cf ${String(rf)===String(r)?'on':''}" data-chartrot="${r}">R${r}</button>`; });
   rotBtns+=`<button class="cf kill ${S.chartKillsOnly?'on':''}" data-chartkills="1">${S.chartKillsOnly?'✓ ':''}Kills only</button>`;
 
-  // plot only bottom-half (our side) landings. Map full court viewBox to bottom half.
-  // We render just the bottom half (y from NET..Y1) scaled into a 360x320 mini viewBox.
-  const VB_W=360, VB_H=300;
-  const sy = y => (y-NET)/(Y1+ (CH-Y1) -NET) * (VB_H-20) + 10; // map NET..bottom to 10..VB_H-10
+  // Bigger canvas & clearer proportions. Map opponent bottom-half landings into a stretched mini court.
+  const VB_W=360, VB_H=340;
+  const PAD_T=28, PAD_B=14;  // top for NET label, bottom for baseline label
+  const sy = y => (y-NET)/(Y1-NET) * (VB_H-PAD_T-PAD_B) + PAD_T;
   const dots = filtered.map(e=>{
     let x,y;
     if(e.dx!=null && e.dy!=null && e.dy>=NET){ x=e.dx; y=e.dy; }
@@ -1332,23 +1413,47 @@ function shotChart(allOpp){
     else return '';
     const col = playColor(e.setPlay||'');
     const isKill = e.outcome==='Kill';
-    const r = isKill?7:5;
+    const r = isKill?8:5;
     const yy = sy(y);
     return `<g>
-      <circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${r}" fill="${col}" fill-opacity="${isKill?0.95:0.4}" stroke="${col}" stroke-width="${isKill?2:1}"/>
-      ${isKill?`<circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${r+3}" fill="none" stroke="${col}" stroke-width="1" stroke-opacity=".5"/>`:''}
+      ${isKill?`<circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${r+4}" fill="none" stroke="${col}" stroke-width="1.5" stroke-opacity=".55"/>`:''}
+      <circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${r}" fill="${col}" fill-opacity="${isKill?1:0.35}" stroke="${isKill?'#000':col}" stroke-width="${isKill?1.5:1}" stroke-opacity="${isKill?0.6:1}"/>
     </g>`;
   }).join('');
 
-  // mini court (our side only) with zone grid
-  const gx1=X0+100, gx2=X0+200, threeM=sy(T3B);
+  // Court geometry — the zone grid on your side (opponent attacking down)
+  const gx1=X0+(X1-X0)/3, gx2=X0+2*(X1-X0)/3;  // vertical thirds
+  const threeM=sy(T3B);
+  const netY=PAD_T, baseY=VB_H-PAD_B;
+  // Zone label positions — 6 zones on our (defensive) side. Numbers 1-6 follow FIVB positions.
+  const zoneMidY = (netY + threeM)/2;                         // front row zones (4, 3, 2 left to right)
+  const zoneBackY = (threeM + baseY)/2;                       // back row zones (5, 6, 1 left to right)
+  const zoneCol = 'rgba(0,0,0,.28)';
+  const zoneLabels = [
+    {n:4, x:X0+(X1-X0)/6,   y:zoneMidY},
+    {n:3, x:CW/2,           y:zoneMidY},
+    {n:2, x:X1-(X1-X0)/6,   y:zoneMidY},
+    {n:5, x:X0+(X1-X0)/6,   y:zoneBackY},
+    {n:6, x:CW/2,           y:zoneBackY},
+    {n:1, x:X1-(X1-X0)/6,   y:zoneBackY},
+  ].map(z=>`<text x="${z.x}" y="${z.y+4}" text-anchor="middle" fill="${zoneCol}" font-size="26" font-family="Saira Condensed" font-weight="800" opacity=".35">${z.n}</text>`).join('');
   const court=`<svg viewBox="0 0 ${VB_W} ${VB_H}" style="width:100%;max-width:340px;display:block;margin:6px auto;background:var(--court);border-radius:10px">
-    <rect x="${X0}" y="6" width="${X1-X0}" height="${VB_H-12}" fill="none" stroke="var(--court-line)" stroke-width="2.5"/>
-    <line x1="${gx1}" y1="6" x2="${gx1}" y2="${VB_H-6}" stroke="var(--court-line)" stroke-width="1" opacity=".4"/>
-    <line x1="${gx2}" y1="6" x2="${gx2}" y2="${VB_H-6}" stroke="var(--court-line)" stroke-width="1" opacity=".4"/>
-    <line x1="${X0}" y1="${threeM.toFixed(1)}" x2="${X1}" y2="${threeM.toFixed(1)}" stroke="var(--court-line)" stroke-width="1.5" opacity=".6"/>
-    <line x1="${X0}" y1="8" x2="${X1}" y2="8" stroke="#fff" stroke-width="3" stroke-dasharray="2 4" opacity=".8"/>
-    <text x="${CW/2}" y="22" text-anchor="middle" fill="rgba(0,0,0,.45)" font-size="11" font-family="Saira Condensed" font-weight="700">NET</text>
+    <!-- zone number labels -->
+    ${zoneLabels}
+    <!-- 3m attack line (bold, dashed to distinguish from the endline) -->
+    <line x1="${X0}" y1="${threeM.toFixed(1)}" x2="${X1}" y2="${threeM.toFixed(1)}" stroke="rgba(0,0,0,.55)" stroke-width="2" stroke-dasharray="6 4"/>
+    <!-- vertical thirds (light) -->
+    <line x1="${gx1.toFixed(1)}" y1="${netY}" x2="${gx1.toFixed(1)}" y2="${baseY}" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+    <line x1="${gx2.toFixed(1)}" y1="${netY}" x2="${gx2.toFixed(1)}" y2="${baseY}" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+    <!-- court boundary (very bold black) -->
+    <rect x="${X0}" y="${netY}" width="${X1-X0}" height="${baseY-netY}" fill="none" stroke="rgba(0,0,0,.85)" stroke-width="3.5"/>
+    <!-- net (top of chart, thick white with black outline) -->
+    <line x1="${X0-4}" y1="${netY}" x2="${X1+4}" y2="${netY}" stroke="rgba(0,0,0,.9)" stroke-width="6"/>
+    <line x1="${X0-4}" y1="${netY}" x2="${X1+4}" y2="${netY}" stroke="#fff" stroke-width="3.5" stroke-dasharray="3 3"/>
+    <!-- labels -->
+    <text x="${CW/2}" y="16" text-anchor="middle" fill="rgba(0,0,0,.7)" font-size="12" font-family="Saira Condensed" font-weight="800" letter-spacing="2">NET</text>
+    <text x="${CW/2}" y="${baseY+11}" text-anchor="middle" fill="rgba(0,0,0,.55)" font-size="10" font-family="Saira Condensed" font-weight="700" letter-spacing="1.5">${esc(S.meta.ourName.toUpperCase())} SIDE — where attacks landed</text>
+    <!-- attack dots -->
     ${dots}
   </svg>`;
 
@@ -1521,8 +1626,14 @@ function avgColor(a){ return a>=2.4?'var(--g3)':a>=2.0?'var(--g2)':a>=1.5?'var(-
 
 /* ============ INTERACTIONS ============ */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-grade],[data-p],[data-team],[data-mode],[data-play],[data-addplay],[data-addplay-go],[data-addplay-cancel],[data-setplay],[data-type],[data-out],[data-del],[data-pt],[data-rot],[data-rotnext],[data-arot],[data-arotnext],[data-chartrot],[data-chartkills],[data-toggle-rot],[data-section-toggle]');
+  const t=e.target.closest('[data-grade],[data-p],[data-team],[data-mode],[data-play],[data-addplay],[data-addplay-go],[data-addplay-cancel],[data-setplay],[data-type],[data-out],[data-del],[data-pt],[data-rot],[data-rotnext],[data-arot],[data-arotnext],[data-chartrot],[data-chartkills],[data-toggle-rot],[data-section-toggle],[data-rnrot]');
   if(!t) return;
+  // Right Now rotation switch
+  if(t.dataset.rnrot!==undefined){
+    S.rightNowRot=+t.dataset.rnrot;
+    renderStats(); save();
+    return;
+  }
   // collapsible section toggle
   if(t.dataset.sectionToggle!==undefined){
     const key=t.dataset.sectionToggle;
