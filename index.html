@@ -890,11 +890,18 @@ function pathSvg(pts,col,op,dotStart){
   const ang=Math.atan2(a.y-b.y,a.x-b.x), L=14, sp=0.5;
   const h1x=(a.x-L*Math.cos(ang-sp)).toFixed(1), h1y=(a.y-L*Math.sin(ang-sp)).toFixed(1);
   const h2x=(a.x-L*Math.cos(ang+sp)).toFixed(1), h2y=(a.y-L*Math.sin(ang+sp)).toFixed(1);
+  const origin = pts[0];
   return `<g opacity="${op}">
-    <path d="${d}" fill="none" stroke="${col}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-    <line x1="${a.x}" y1="${a.y}" x2="${h1x}" y2="${h1y}" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>
-    <line x1="${a.x}" y1="${a.y}" x2="${h2x}" y2="${h2y}" stroke="${col}" stroke-width="3.2" stroke-linecap="round"/>
-    ${dotStart?`<circle cx="${pts[0].x}" cy="${pts[0].y}" r="4" fill="${col}"/>`:''}
+    <!-- origin ring: bold circle at the start of the swing -->
+    <circle cx="${origin.x.toFixed(1)}" cy="${origin.y.toFixed(1)}" r="8" fill="${col}" fill-opacity=".25" stroke="${col}" stroke-width="3"/>
+    <circle cx="${origin.x.toFixed(1)}" cy="${origin.y.toFixed(1)}" r="3.5" fill="${col}"/>
+    <!-- the drawn line: dark outline + colored stroke on top so it pops off the court -->
+    <path d="${d}" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="${a.x}" y1="${a.y}" x2="${h1x}" y2="${h1y}" stroke="rgba(0,0,0,.5)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="${a.x}" y1="${a.y}" x2="${h1x}" y2="${h1y}" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="${a.x}" y1="${a.y}" x2="${h2x}" y2="${h2y}" stroke="rgba(0,0,0,.5)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="${a.x}" y1="${a.y}" x2="${h2x}" y2="${h2y}" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>
   </g>`;
 }
 function finalizeAttack(outcome){
@@ -1057,7 +1064,11 @@ function renderAttacks(){
     const col = e.outcome==='Kill'?'var(--kill)':e.outcome==='Error'?'var(--err)':e.outcome==='Blocked'?'var(--blk)':'var(--inp)';
     const op = e.outcome==='In play'?0.45:0.85;
     if(e.path && e.path.length>=1) return pathSvg(e.path,col,op,true);
-    return `<g opacity="${op}">${arrow(e.ox,e.oy,e.dx,e.dy,col)}<circle cx="${e.ox}" cy="${e.oy}" r="3.5" fill="${col}"/></g>`;
+    return `<g opacity="${op}">
+      ${arrow(e.ox,e.oy,e.dx,e.dy,col)}
+      <circle cx="${e.ox}" cy="${e.oy}" r="7" fill="${col}" fill-opacity=".28" stroke="${col}" stroke-width="2.5"/>
+      <circle cx="${e.ox}" cy="${e.oy}" r="3" fill="${col}"/>
+    </g>`;
   }).join('');
 }
 
