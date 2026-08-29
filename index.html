@@ -41,7 +41,8 @@
     -webkit-user-select:none;user-select:none;
   }
   .num,.disp{font-family:'Saira Condensed',sans-serif;letter-spacing:.3px}
-  button{font-family:inherit;color:inherit;border:none;cursor:pointer;background:none}
+  button{font-family:inherit;color:inherit;border:none;cursor:pointer;background:none;touch-action:manipulation;-webkit-tap-highlight-color:rgba(255,210,74,.25);-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  button:active{opacity:.85}
   .hidden{display:none !important}
 
   /* ---------- SETUP SCREEN ---------- */
@@ -116,6 +117,7 @@
   .ob.kill{background:rgba(39,209,127,.16);color:var(--kill);border-color:rgba(39,209,127,.4)}
   .ob.err{background:rgba(255,93,93,.16);color:var(--err);border-color:rgba(255,93,93,.4)}
   .ob.blk{background:rgba(176,107,255,.16);color:var(--blk);border-color:rgba(176,107,255,.4)}
+  .ob.blkerr{background:rgba(255,93,93,.14);color:#ff8a8a;border-color:rgba(255,93,93,.35)}
   .ob.blkip{background:rgba(176,107,255,.08);color:#c9a8ff;border-color:rgba(176,107,255,.28)}
   .ob.inp{background:rgba(125,141,160,.16);color:var(--inp);border-color:rgba(125,141,160,.4)}
   .ob.free{background:rgba(90,160,220,.12);color:#7bb8e8;border-color:rgba(90,160,220,.32)}
@@ -499,6 +501,7 @@
             <button class="ob kill" data-out="Kill">Kill</button>
             <button class="ob err" data-out="Error">Error</button>
             <button class="ob blk" data-out="Blocked">Blocked</button>
+            <button class="ob blkerr" data-out="Block error">Block&nbsp;Err</button>
             <button class="ob blkip" data-out="Blk in play">Blk&nbsp;in&nbsp;Play</button>
             <button class="ob inp" data-out="In play">In&nbsp;Play</button>
             <button class="ob free" data-out="Freeball">Freeball</button>
@@ -917,7 +920,7 @@ function finalizeAttack(outcome){
              rot:(S.atkTeam==='ours'?S.ourRot:S.oppRot), set:S.setNo, ts:Date.now() };
   S.events.push(ev);
   // auto-score
-  if(outcome==='Kill'){ S.atkTeam==='ours'?S.ourPts++:S.oppPts++; }
+  if(outcome==='Kill' || outcome==='Block error'){ S.atkTeam==='ours'?S.ourPts++:S.oppPts++; }
   else if(outcome==='Error'||outcome==='Blocked'){ S.atkTeam==='ours'?S.oppPts++:S.ourPts++; }
   resetPending();
   S.combo=[]; S.setPlay=null;   // clear for next rally (swing stays sticky)
@@ -1413,59 +1416,96 @@ function shotChart(allOpp){
   rotsPresent.forEach(r=>{ rotBtns+=`<button class="cf ${String(rf)===String(r)?'on':''}" data-chartrot="${r}">R${r}</button>`; });
   rotBtns+=`<button class="cf kill ${S.chartKillsOnly?'on':''}" data-chartkills="1">${S.chartKillsOnly?'✓ ':''}Kills only</button>`;
 
-  // Bigger canvas & clearer proportions. Map opponent bottom-half landings into a stretched mini court.
-  const VB_W=360, VB_H=340;
-  const PAD_T=28, PAD_B=14;  // top for NET label, bottom for baseline label
-  const sy = y => (y-NET)/(Y1-NET) * (VB_H-PAD_T-PAD_B) + PAD_T;
-  const dots = filtered.map(e=>{
-    let x,y;
-    if(e.dx!=null && e.dy!=null && e.dy>=NET){ x=e.dx; y=e.dy; }
-    else if(e.lZone){ const z=ZONES.find(z=>z.id===e.lZone); if(!z) return ''; x=z.cx; y=z.cy; }
+  // Full-court view: opponent side on top (where they attack from), our side on bottom (where it lands)
+  const VB_W=360, VB_H=520;
+  const PAD_T=28, PAD_B=18;
+  // Court proportions: top half = opp side, bottom half = our side, net across middle
+  const NET_Y = PAD_T + (VB_H - PAD_T - PAD_B) / 2;
+  const TOP_Y = PAD_T;
+  const BOT_Y = VB_H - PAD_B;
+  // Coordinate mapping: source y is 0..CH, remap linearly into TOP_Y..BOT_Y
+  const sy = y => TOP_Y + (y / CH) * (BOT_Y - TOP_Y);
+  const T3T_yy = sy(T3T); // 3m attack line on opp side
+  const T3B_yy = sy(T3B); // 3m attack line on our side
+
+  // Draw each attack as: line from origin -> landing, with landing marker
+  // Fall back to just landing dot if no origin (single-tap zones mode)
+  const attacks = filtered.map(e=>{
+    let ox,oy,dx,dy,hasOrigin=false;
+    // landing
+    if(e.dx!=null && e.dy!=null){ dx=e.dx; dy=e.dy; }
+    else if(e.lZone){ const z=ZONES.find(z=>z.id===e.lZone); if(!z) return ''; dx=z.cx; dy=z.cy; }
     else return '';
+    // origin
+    if(e.ox!=null && e.oy!=null){ ox=e.ox; oy=e.oy; hasOrigin=true; }
+    else if(e.oZone){ const z=ZONES.find(z=>z.id===e.oZone); if(z){ ox=z.cx; oy=z.cy; hasOrigin=true; } }
     const col = playColor(e.setPlay||'');
     const isKill = e.outcome==='Kill';
-    const r = isKill?8:5;
-    const yy = sy(y);
-    return `<g>
-      ${isKill?`<circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${r+4}" fill="none" stroke="${col}" stroke-width="1.5" stroke-opacity=".55"/>`:''}
-      <circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="${r}" fill="${col}" fill-opacity="${isKill?1:0.35}" stroke="${isKill?'#000':col}" stroke-width="${isKill?1.5:1}" stroke-opacity="${isKill?0.6:1}"/>
+    const oxx=ox!=null?ox.toFixed(1):null, oyy=ox!=null?sy(oy).toFixed(1):null;
+    const dxx=dx.toFixed(1), dyy=sy(dy).toFixed(1);
+    // Line (origin -> landing)
+    let lineSvg='';
+    if(hasOrigin){
+      const w = isKill ? 2.4 : 1.6;
+      const op = isKill ? 0.85 : 0.35;
+      lineSvg = `<line x1="${oxx}" y1="${oyy}" x2="${dxx}" y2="${dyy}" stroke="${col}" stroke-width="${w}" stroke-opacity="${op}" stroke-linecap="round"/>`;
+    }
+    // Origin marker (small dot at start of the line)
+    const originSvg = hasOrigin ? `<circle cx="${oxx}" cy="${oyy}" r="3" fill="${col}" fill-opacity="${isKill?0.85:0.4}"/>` : '';
+    // Landing marker (bigger, prominent)
+    const r = isKill ? 7 : 4.5;
+    const landingSvg = `<g>
+      ${isKill?`<circle cx="${dxx}" cy="${dyy}" r="${r+4}" fill="none" stroke="${col}" stroke-width="1.5" stroke-opacity=".55"/>`:''}
+      <circle cx="${dxx}" cy="${dyy}" r="${r}" fill="${col}" fill-opacity="${isKill?1:0.35}" stroke="${isKill?'#000':col}" stroke-width="${isKill?1.5:1}" stroke-opacity="${isKill?0.6:1}"/>
     </g>`;
+    return lineSvg + originSvg + landingSvg;
   }).join('');
 
-  // Court geometry — the zone grid on your side (opponent attacking down)
-  const gx1=X0+(X1-X0)/3, gx2=X0+2*(X1-X0)/3;  // vertical thirds
-  const threeM=sy(T3B);
-  const netY=PAD_T, baseY=VB_H-PAD_B;
-  // Zone label positions — 6 zones on our (defensive) side. Numbers 1-6 follow FIVB positions.
-  const zoneMidY = (netY + threeM)/2;                         // front row zones (4, 3, 2 left to right)
-  const zoneBackY = (threeM + baseY)/2;                       // back row zones (5, 6, 1 left to right)
-  const zoneCol = 'rgba(0,0,0,.28)';
+  // Court geometry
+  const gx1=X0+(X1-X0)/3, gx2=X0+2*(X1-X0)/3;
+
+  // Zone labels — both sides. Top = opponent, Bottom = us
+  const topFrontY = (NET_Y + T3T_yy)/2, topBackY = (T3T_yy + TOP_Y)/2;
+  const botFrontY = (NET_Y + T3B_yy)/2, botBackY = (T3B_yy + BOT_Y)/2;
+  const oppZoneCol = 'rgba(0,0,0,.22)';
+  const ourZoneCol = 'rgba(0,0,0,.28)';
   const zoneLabels = [
-    {n:4, x:X0+(X1-X0)/6,   y:zoneMidY},
-    {n:3, x:CW/2,           y:zoneMidY},
-    {n:2, x:X1-(X1-X0)/6,   y:zoneMidY},
-    {n:5, x:X0+(X1-X0)/6,   y:zoneBackY},
-    {n:6, x:CW/2,           y:zoneBackY},
-    {n:1, x:X1-(X1-X0)/6,   y:zoneBackY},
-  ].map(z=>`<text x="${z.x}" y="${z.y+4}" text-anchor="middle" fill="${zoneCol}" font-size="26" font-family="Saira Condensed" font-weight="800" opacity=".35">${z.n}</text>`).join('');
+    // opponent side (top) — 4-3-2 front, 5-6-1 back (mirrored from our perspective)
+    {n:2, x:X0+(X1-X0)/6,   y:topFrontY, c:oppZoneCol},
+    {n:3, x:CW/2,           y:topFrontY, c:oppZoneCol},
+    {n:4, x:X1-(X1-X0)/6,   y:topFrontY, c:oppZoneCol},
+    {n:1, x:X0+(X1-X0)/6,   y:topBackY,  c:oppZoneCol},
+    {n:6, x:CW/2,           y:topBackY,  c:oppZoneCol},
+    {n:5, x:X1-(X1-X0)/6,   y:topBackY,  c:oppZoneCol},
+    // our side (bottom)
+    {n:4, x:X0+(X1-X0)/6,   y:botFrontY, c:ourZoneCol},
+    {n:3, x:CW/2,           y:botFrontY, c:ourZoneCol},
+    {n:2, x:X1-(X1-X0)/6,   y:botFrontY, c:ourZoneCol},
+    {n:5, x:X0+(X1-X0)/6,   y:botBackY,  c:ourZoneCol},
+    {n:6, x:CW/2,           y:botBackY,  c:ourZoneCol},
+    {n:1, x:X1-(X1-X0)/6,   y:botBackY,  c:ourZoneCol},
+  ].map(z=>`<text x="${z.x}" y="${z.y+4}" text-anchor="middle" fill="${z.c}" font-size="22" font-family="Saira Condensed" font-weight="800" opacity=".28">${z.n}</text>`).join('');
+
   const court=`<svg viewBox="0 0 ${VB_W} ${VB_H}" style="width:100%;max-width:340px;display:block;margin:6px auto;background:var(--court);border-radius:10px">
-    <!-- zone number labels -->
+    <!-- zone labels -->
     ${zoneLabels}
-    <!-- 3m attack line (bold, dashed to distinguish from the endline) -->
-    <line x1="${X0}" y1="${threeM.toFixed(1)}" x2="${X1}" y2="${threeM.toFixed(1)}" stroke="rgba(0,0,0,.55)" stroke-width="2" stroke-dasharray="6 4"/>
-    <!-- vertical thirds (light) -->
-    <line x1="${gx1.toFixed(1)}" y1="${netY}" x2="${gx1.toFixed(1)}" y2="${baseY}" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
-    <line x1="${gx2.toFixed(1)}" y1="${netY}" x2="${gx2.toFixed(1)}" y2="${baseY}" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
-    <!-- court boundary (very bold black) -->
-    <rect x="${X0}" y="${netY}" width="${X1-X0}" height="${baseY-netY}" fill="none" stroke="rgba(0,0,0,.85)" stroke-width="3.5"/>
-    <!-- net (top of chart, thick white with black outline) -->
-    <line x1="${X0-4}" y1="${netY}" x2="${X1+4}" y2="${netY}" stroke="rgba(0,0,0,.9)" stroke-width="6"/>
-    <line x1="${X0-4}" y1="${netY}" x2="${X1+4}" y2="${netY}" stroke="#fff" stroke-width="3.5" stroke-dasharray="3 3"/>
-    <!-- labels -->
-    <text x="${CW/2}" y="16" text-anchor="middle" fill="rgba(0,0,0,.7)" font-size="12" font-family="Saira Condensed" font-weight="800" letter-spacing="2">NET</text>
-    <text x="${CW/2}" y="${baseY+11}" text-anchor="middle" fill="rgba(0,0,0,.55)" font-size="10" font-family="Saira Condensed" font-weight="700" letter-spacing="1.5">${esc(S.meta.ourName.toUpperCase())} SIDE — where attacks landed</text>
-    <!-- attack dots -->
-    ${dots}
+    <!-- 3m attack lines both sides (dashed) -->
+    <line x1="${X0}" y1="${T3T_yy.toFixed(1)}" x2="${X1}" y2="${T3T_yy.toFixed(1)}" stroke="rgba(0,0,0,.45)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <line x1="${X0}" y1="${T3B_yy.toFixed(1)}" x2="${X1}" y2="${T3B_yy.toFixed(1)}" stroke="rgba(0,0,0,.45)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <!-- vertical thirds -->
+    <line x1="${gx1.toFixed(1)}" y1="${TOP_Y}" x2="${gx1.toFixed(1)}" y2="${BOT_Y}" stroke="rgba(0,0,0,.22)" stroke-width="1"/>
+    <line x1="${gx2.toFixed(1)}" y1="${TOP_Y}" x2="${gx2.toFixed(1)}" y2="${BOT_Y}" stroke="rgba(0,0,0,.22)" stroke-width="1"/>
+    <!-- court boundary -->
+    <rect x="${X0}" y="${TOP_Y}" width="${X1-X0}" height="${BOT_Y-TOP_Y}" fill="none" stroke="rgba(0,0,0,.85)" stroke-width="3.5"/>
+    <!-- net across middle -->
+    <line x1="${X0-4}" y1="${NET_Y.toFixed(1)}" x2="${X1+4}" y2="${NET_Y.toFixed(1)}" stroke="rgba(0,0,0,.9)" stroke-width="5"/>
+    <line x1="${X0-4}" y1="${NET_Y.toFixed(1)}" x2="${X1+4}" y2="${NET_Y.toFixed(1)}" stroke="#fff" stroke-width="3" stroke-dasharray="3 3"/>
+    <!-- side labels -->
+    <text x="${CW/2}" y="18" text-anchor="middle" fill="rgba(0,0,0,.55)" font-size="10" font-family="Saira Condensed" font-weight="700" letter-spacing="1.5">${esc(S.meta.oppName.toUpperCase())} SIDE — attacks originate</text>
+    <text x="${CW/2}" y="${(NET_Y-4).toFixed(1)}" text-anchor="middle" fill="rgba(0,0,0,.65)" font-size="10" font-family="Saira Condensed" font-weight="800" letter-spacing="2">NET</text>
+    <text x="${CW/2}" y="${(BOT_Y+13).toFixed(1)}" text-anchor="middle" fill="rgba(0,0,0,.55)" font-size="10" font-family="Saira Condensed" font-weight="700" letter-spacing="1.5">${esc(S.meta.ourName.toUpperCase())} SIDE — where attacks land</text>
+    <!-- attack lines + markers -->
+    ${attacks}
   </svg>`;
 
   // legend: plays that appear, + kill/attempt note
@@ -1474,11 +1514,11 @@ function shotChart(allOpp){
   const kills=filtered.filter(e=>e.outcome==='Kill').length;
 
   return `<div style="margin-bottom:14px">
-    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--g2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${esc(S.meta.oppName)} Shot Chart — where attacks land</div>
+    <div style="font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--g2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${esc(S.meta.oppName)} Shot Chart — origin → landing</div>
     <div class="chart-filters">${rotBtns}</div>
     ${court}
     <div class="chart-legend">${legend}</div>
-    <div style="font-size:10px;color:var(--ink-faint);margin-top:4px">${S.chartKillsOnly?`Kills only · color = play set · ${filtered.length} kills`:`Solid ring = kill · faded = other attempt · color = play set · ${filtered.length} shots, ${kills} kills`}${rf==='all'?'':' in R'+rf}</div>
+    <div style="font-size:10px;color:var(--ink-faint);margin-top:4px">${S.chartKillsOnly?`Kills only · lines = origin→landing · color = play set · ${filtered.length} kills`:`Line = origin→landing · bold ring = kill · faded = other attempt · color = play set · ${filtered.length} shots, ${kills} kills`}${rf==='all'?'':' in R'+rf}</div>
   </div>`;
 }
 function atkByRotTable(title,evs){
@@ -1636,7 +1676,8 @@ function atkTable(title,evs){
 function avgColor(a){ return a>=2.4?'var(--g3)':a>=2.0?'var(--g2)':a>=1.5?'var(--g1)':'var(--g0)'; }
 
 /* ============ INTERACTIONS ============ */
-document.addEventListener('click',e=>{
+// Use pointerdown for immediate response on iPad — avoids the iOS tap-delay + first-touch-establishes-hover bug
+document.addEventListener('pointerdown',e=>{
   const t=e.target.closest('[data-grade],[data-p],[data-team],[data-mode],[data-play],[data-addplay],[data-addplay-go],[data-addplay-cancel],[data-setplay],[data-type],[data-out],[data-del],[data-pt],[data-rot],[data-rotnext],[data-arot],[data-arotnext],[data-chartrot],[data-chartkills],[data-toggle-rot],[data-section-toggle],[data-rnrot]');
   if(!t) return;
   // Right Now rotation switch
@@ -1785,7 +1826,7 @@ function delEvent(id){
   const i=S.events.findIndex(e=>e.id===id); if(i<0) return;
   const e=S.events[i];
   if(e.kind==='attack'){ // reverse score
-    if(e.outcome==='Kill'){ e.team==='ours'?S.ourPts--:S.oppPts--; }
+    if(e.outcome==='Kill' || e.outcome==='Block error'){ e.team==='ours'?S.ourPts--:S.oppPts--; }
     else if(e.outcome==='Error'||e.outcome==='Blocked'){ e.team==='ours'?S.oppPts--:S.ourPts--; }
   } else if(e.kind==='pass' && e.scored){ // reverse ace point
     if(e.team==='ours') S.oppPts=Math.max(0,S.oppPts-1);
