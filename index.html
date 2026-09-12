@@ -236,6 +236,11 @@
   .rc-caret{color:var(--ink-faint);font-size:14px;flex-shrink:0;padding:0 4px}
   .rc-detail{padding:8px 12px 12px;border-top:1px solid var(--line);background:var(--bg)}
   .rc-detail-h{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:var(--ink-faint);margin-bottom:6px}
+  .rc-chrono{background:rgba(63,169,245,.05);border:1px solid rgba(63,169,245,.18);border-radius:8px;padding:8px 10px;margin-bottom:10px}
+  .rc-chrono-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:5px}
+  .rc-chrono-row:first-of-type{margin-top:2px}
+  .rc-chrono-set{font-family:'Saira Condensed';font-weight:800;font-size:11px;color:var(--g2);background:rgba(63,169,245,.14);border:1px solid var(--g2);border-radius:4px;padding:1px 6px;letter-spacing:.5px;min-width:26px;text-align:center}
+  .rc-chrono-pill{font-family:'Saira Condensed';font-weight:700;font-size:12px;background:var(--panel);border:1.5px solid var(--line);border-radius:5px;padding:2px 7px;letter-spacing:.3px;white-space:nowrap}
   .rc-play{font-family:'Saira Condensed';font-weight:700;font-size:13px;color:var(--ink-dim);padding:2px 7px;border-radius:6px;background:var(--panel-2)}
   .rc-set{color:#bfe0ff;border:1px solid var(--g2)}
   .rc-kill{background:rgba(39,209,127,.18);color:var(--kill);border:1px solid var(--kill)}
@@ -1597,7 +1602,30 @@ function atkByRotTable(title,evs){
           <td style="font-size:11px;color:var(--kill)">${landOut}</td>
         </tr>`;
       }).join('');
+      // Chronological: this rotation's attacks, most recent first
+      const rotEvs = evs.filter(e=>(e.rot||'?')==r).sort((a,b)=>(b.ts||0)-(a.ts||0));
+      const recent = rotEvs.slice(0, 12);
+      const outcomeCol = o => o==='Kill'?'var(--kill)':o==='Error'?'var(--err)':o==='Blocked'?'var(--blk)':o==='Block error'?'#ff8a8a':o==='Blk in play'?'#c9a8ff':o==='Freeball'?'#7bb8e8':'var(--inp)';
+      const outcomeShort = o => ({'Kill':'K','Error':'E','Blocked':'BLK','Block error':'BE','Blk in play':'BiP','In play':'IP','Freeball':'FB'})[o] || o;
+      const setNo = e => e.set||'';
+      // Group by set number so you can see set-by-set flow
+      const bySet = {};
+      recent.forEach(e=>{ (bySet[e.set||'?']=bySet[e.set||'?']||[]).push(e); });
+      const setKeys = Object.keys(bySet).sort((a,b)=>+b-+a); // recent set first
+      const chronoStrip = recent.length ? `<div class="rc-chrono">
+        <div class="rc-detail-h">Recent — most recent first${rotEvs.length>12?` (showing 12 of ${rotEvs.length})`:''}</div>
+        ${setKeys.map(sk=>`<div class="rc-chrono-row">
+          <span class="rc-chrono-set">S${sk}</span>
+          ${bySet[sk].map(e=>{
+            const sp = e.setPlay||e.setTo||'—';
+            const col = outcomeCol(e.outcome);
+            const short = outcomeShort(e.outcome);
+            return `<span class="rc-chrono-pill" style="border-color:${col};color:${col}">${esc(sp)} <span style="opacity:.75">·${short}</span></span>`;
+          }).join('')}
+        </div>`).join('')}
+      </div>` : '';
       detail=`<div class="rc-detail">
+        ${chronoStrip}
         <div class="rc-detail-h">Combinations run</div>
         ${combos}
         <table class="sp-table" style="margin-top:8px">
