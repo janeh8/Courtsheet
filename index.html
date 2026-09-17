@@ -397,6 +397,19 @@
         <input id="su-opppassers" name="pas-x1" data-form-type="other" placeholder="e.g. 3, 8, 11" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
         <div class="roster-help">Only these players show as tap targets when grading opponent. Leave blank to show their full roster.</div>
       </div>
+      <div class="fld" style="border-top:1px solid var(--line);padding-top:14px;margin-top:6px">
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="su-opp62-on" style="width:18px;height:18px">
+          <span>Opponent runs a 6-2 — auto-sub S/Oppo pair on rotation change</span>
+        </label>
+        <div class="roster-help">When on: R1-R3 uses Setter A + Oppo A; R4-R6 uses Setter B + Oppo B. Swap happens automatically when you change opponent rotation.</div>
+        <div id="su-opp62-fields" class="hidden" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><div style="font-size:11px;color:var(--ink-faint);margin-bottom:3px">Setter A (R1-R3, back-row)</div><input id="su-opp62-sA" name="s62a" data-form-type="other" placeholder="#" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+          <div><div style="font-size:11px;color:var(--ink-faint);margin-bottom:3px">Oppo A (R1-R3)</div><input id="su-opp62-oA" name="o62a" data-form-type="other" placeholder="#" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+          <div><div style="font-size:11px;color:var(--ink-faint);margin-bottom:3px">Setter B (R4-R6, back-row)</div><input id="su-opp62-sB" name="s62b" data-form-type="other" placeholder="#" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+          <div><div style="font-size:11px;color:var(--ink-faint);margin-bottom:3px">Oppo B (R4-R6)</div><input id="su-opp62-oB" name="o62b" data-form-type="other" placeholder="#" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+        </div>
+      </div>
     </div>
     <div class="setup-foot">
       <div class="resume" id="resume-line"></div>
@@ -646,6 +659,20 @@ const PLAY_GROUPS = [
   { label:'Back-row sets',    plays:['Bic','D','Dump'] },
 ];
 const DEFAULT_PLAYS = PLAY_GROUPS.flatMap(g=>g.plays);
+// Default origin zone (on the opponent/top side) for each play — used to auto-draw
+// origin→landing lines in the shot chart when the user only tapped a landing.
+// User can override these in setup (meta.playOrigins).
+const DEFAULT_PLAY_ORIGINS = {
+  '1':'T-M-F', 'Push':'T-M-F', '3':'T-M-F', 'Gap':'T-M-F', 'Tight':'T-M-F', 'Dump':'T-M-F',
+  'Slide':'T-R-F',
+  'Go':'T-L-F', 'Rip':'T-L-F', '2':'T-L-F',
+  'Jet':'T-R-F', 'Bang':'T-R-F',
+  'Bic':'T-M-B', 'D':'T-R-B'
+};
+function playOriginZone(play){
+  const map = (S && S.meta && S.meta.playOrigins) || {};
+  return map[play] || DEFAULT_PLAY_ORIGINS[play] || null;
+}
 
 function freshState(meta){
   return {
@@ -674,12 +701,57 @@ async function boot(){
     $('#su-opproster').value=saved.meta.oppRoster.join(', ');
     if(saved.meta.ourPassers) $('#su-ourpassers').value=saved.meta.ourPassers.join(', ');
     if(saved.meta.oppPassers) $('#su-opppassers').value=saved.meta.oppPassers.join(', ');
+    // 6-2 auto-sub config
+    const opp62 = saved.meta.opp62;
+    if(opp62){
+      $('#su-opp62-on').checked = !!opp62.on;
+      $('#su-opp62-sA').value = opp62.sA||'';
+      $('#su-opp62-oA').value = opp62.oA||'';
+      $('#su-opp62-sB').value = opp62.sB||'';
+      $('#su-opp62-oB').value = opp62.oB||'';
+      if(opp62.on) $('#su-opp62-fields').classList.remove('hidden');
+    }
   }
 }
 function parseRoster(str){
   // Any run of non-alphanumeric characters is a separator (comma, space, semicolon, curly quote, etc.)
   return String(str||'').split(/[^A-Za-z0-9]+/).map(x=>x.trim()).filter(Boolean);
 }
+
+// Auto-swap opponent setter and opposite based on rotation, if 6-2 is configured
+// Pair A (sA + oA) is on court for rotations 1, 2, 3
+// Pair B (sB + oB) is on court for rotations 4, 5, 6
+// The swap edits S.oppLineup in place. Returns true if any change happened.
+function apply62Autosub(newRot){
+  const cfg = S.meta && S.meta.opp62;
+  if(!cfg || !cfg.on) return false;
+  if(!cfg.sA || !cfg.oA || !cfg.sB || !cfg.oB) return false;
+  if(!S.oppLineup) return false;
+  const inFirstHalf = newRot>=1 && newRot<=3;
+  const activeS = inFirstHalf ? cfg.sA : cfg.sB;
+  const inactiveS = inFirstHalf ? cfg.sB : cfg.sA;
+  const activeO = inFirstHalf ? cfg.oA : cfg.oB;
+  const inactiveO = inFirstHalf ? cfg.oB : cfg.oA;
+  let changed = false;
+  // Find each inactive jersey on court and swap in the active one, keeping position + role tag
+  Object.entries(S.oppLineup).forEach(([pos, p])=>{
+    if(!p) return;
+    if(p.jersey === inactiveS){
+      S.oppLineup[pos] = { ...p, jersey: activeS };
+      changed = true;
+    } else if(p.jersey === inactiveO){
+      S.oppLineup[pos] = { ...p, jersey: activeO };
+      changed = true;
+    }
+  });
+  return changed;
+}
+// Toggle 6-2 field visibility when checkbox changes
+document.addEventListener('change', e=>{
+  if(e.target && e.target.id==='su-opp62-on'){
+    $('#su-opp62-fields').classList.toggle('hidden', !e.target.checked);
+  }
+});
 $('#su-start').onclick = ()=>{
   const meta = {
     ourName: $('#su-ourname').value.trim()||'Our Team',
@@ -689,12 +761,26 @@ $('#su-start').onclick = ()=>{
     ourPassers: parseRoster($('#su-ourpassers').value),
     oppPassers: parseRoster($('#su-opppassers').value),
     plays: DEFAULT_PLAYS.slice(),
+    opp62: {
+      on: $('#su-opp62-on').checked,
+      sA: $('#su-opp62-sA').value.trim(),
+      oA: $('#su-opp62-oA').value.trim(),
+      sB: $('#su-opp62-sB').value.trim(),
+      oB: $('#su-opp62-oB').value.trim(),
+    },
     date: new Date().toISOString().slice(0,10)
   };
   if(meta.ourRoster.length===0) meta.ourRoster=['1','2','3','4','5','6'];
   // Auto-add any listed passer missing from the roster (so nothing gets silently dropped)
   meta.ourPassers.forEach(p=>{ if(!meta.ourRoster.includes(p)) meta.ourRoster.push(p); });
   meta.oppPassers.forEach(p=>{ if(!meta.oppRoster.includes(p)) meta.oppRoster.push(p); });
+  // Auto-add 6-2 jerseys to opp roster
+  if(meta.opp62){
+    ['sA','oA','sB','oB'].forEach(k=>{
+      const j = meta.opp62[k];
+      if(j && !meta.oppRoster.includes(j)) meta.oppRoster.push(j);
+    });
+  }
   S = freshState(meta);
   S.selPasser = (meta.ourPassers.length?meta.ourPassers:meta.ourRoster)[0];
   startApp();
@@ -838,7 +924,7 @@ function onCourtUp(evt){
 function setCourtHint(){
   const h=$('#court-hint'); if(!h) return;
   h.textContent = S.atkMode==='zones'
-    ? 'Tap where it lands (bottom half) · optional: tap origin (top)'
+    ? 'Tap where it lands (bottom half) — origin auto-drawn from play'
     : 'Press and drag to draw the attack path';
   h.style.opacity = S.pending ? 0 : 1;
 }
@@ -1444,6 +1530,14 @@ function shotChart(allOpp){
     // origin
     if(e.ox!=null && e.oy!=null){ ox=e.ox; oy=e.oy; hasOrigin=true; }
     else if(e.oZone){ const z=ZONES.find(z=>z.id===e.oZone); if(z){ ox=z.cx; oy=z.cy; hasOrigin=true; } }
+    else {
+      // Infer origin from the set play — most plays originate from a known court zone
+      const originZoneId = playOriginZone(e.setPlay||e.setTo);
+      if(originZoneId){
+        const z=ZONES.find(z=>z.id===originZoneId);
+        if(z){ ox=z.cx; oy=z.cy; hasOrigin=true; }
+      }
+    }
     const col = playColor(e.setPlay||'');
     const isKill = e.outcome==='Kill';
     const oxx=ox!=null?ox.toFixed(1):null, oyy=ox!=null?sy(oy).toFixed(1):null;
@@ -1741,8 +1835,8 @@ document.addEventListener('pointerdown',e=>{
   if(t.dataset.rot!==undefined){ setRot(+t.dataset.rot); return; }
   if(t.dataset.rotnext!==undefined){ setRot(((S.passTeam==='ours'?S.ourRot:S.oppRot)%6)+1); return; }
   // opponent rotation set from the attack map
-  if(t.dataset.arot!==undefined){ S.oppRot=+t.dataset.arot; renderRot(); save(); return; }
-  if(t.dataset.arotnext!==undefined){ S.oppRot=(S.oppRot%6)+1; renderRot(); save(); return; }
+  if(t.dataset.arot!==undefined){ S.oppRot=+t.dataset.arot; apply62Autosub(S.oppRot); renderRot(); renderStats(); save(); return; }
+  if(t.dataset.arotnext!==undefined){ S.oppRot=(S.oppRot%6)+1; apply62Autosub(S.oppRot); renderRot(); renderStats(); save(); return; }
   // pass grade
   if(t.dataset.grade!==undefined && t.closest('.grades')){ logPass(+t.dataset.grade); return; }
   // passer select
@@ -1827,8 +1921,8 @@ function rotSetterLocation(rot){
   return '';
 }
 function setRot(n){
-  if(S.passTeam==='ours') S.ourRot=n; else S.oppRot=n;
-  renderRot(); save();
+  if(S.passTeam==='ours') S.ourRot=n; else { S.oppRot=n; apply62Autosub(S.oppRot); }
+  renderRot(); renderStats(); save();
 }
 function logPass(grade){
   const rot = S.passTeam==='ours'?S.ourRot:S.oppRot;
@@ -1893,6 +1987,14 @@ $('#menu-edit').onclick=()=>{
   $('#su-ourroster').value=S.meta.ourRoster.join(', '); $('#su-opproster').value=S.meta.oppRoster.join(', ');
   $('#su-ourpassers').value=(S.meta.ourPassers||[]).join(', ');
   $('#su-opppassers').value=(S.meta.oppPassers||[]).join(', ');
+  // 6-2 prefill
+  const opp62 = S.meta.opp62 || {};
+  $('#su-opp62-on').checked = !!opp62.on;
+  $('#su-opp62-sA').value = opp62.sA||'';
+  $('#su-opp62-oA').value = opp62.oA||'';
+  $('#su-opp62-sB').value = opp62.sB||'';
+  $('#su-opp62-oB').value = opp62.oB||'';
+  $('#su-opp62-fields').classList.toggle('hidden', !opp62.on);
   $('#menu').classList.add('hidden'); $('#app').classList.add('hidden'); $('#setup').classList.remove('hidden');
   $('#su-start').textContent='Save & Continue';
   $('#su-start').onclick=()=>{
@@ -1905,6 +2007,19 @@ $('#menu-edit').onclick=()=>{
     S.meta.ourPassers.forEach(p=>{ if(!S.meta.ourRoster.includes(p)) S.meta.ourRoster.push(p); });
     S.meta.oppPassers=parseRoster($('#su-opppassers').value);
     S.meta.oppPassers.forEach(p=>{ if(!S.meta.oppRoster.includes(p)) S.meta.oppRoster.push(p); });
+    // 6-2 save
+    S.meta.opp62 = {
+      on: $('#su-opp62-on').checked,
+      sA: $('#su-opp62-sA').value.trim(),
+      oA: $('#su-opp62-oA').value.trim(),
+      sB: $('#su-opp62-sB').value.trim(),
+      oB: $('#su-opp62-oB').value.trim(),
+    };
+    // Auto-add 6-2 jerseys to opp roster if missing
+    ['sA','oA','sB','oB'].forEach(k=>{
+      const j = S.meta.opp62[k];
+      if(j && !S.meta.oppRoster.includes(j)) S.meta.oppRoster.push(j);
+    });
     if(!S.meta.ourRoster.length)S.meta.ourRoster=['1','2','3','4','5','6'];
     $('#setup').classList.add('hidden'); $('#app').classList.remove('hidden');
     renderAll(); save();
