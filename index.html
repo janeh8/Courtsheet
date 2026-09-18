@@ -121,6 +121,10 @@
   .ob.blkip{background:rgba(176,107,255,.08);color:#c9a8ff;border-color:rgba(176,107,255,.28)}
   .ob.inp{background:rgba(125,141,160,.16);color:var(--inp);border-color:rgba(125,141,160,.4)}
   .ob.free{background:rgba(90,160,220,.12);color:#7bb8e8;border-color:rgba(90,160,220,.32)}
+  .lzgrid{display:grid;grid-template-columns:repeat(3,minmax(72px,1fr));gap:6px;flex:1}
+  .lz{background:var(--panel-2);border:2px solid var(--line);border-radius:12px;padding:16px 4px;font-family:'Saira Condensed';font-weight:800;font-size:26px;color:var(--ink-dim);letter-spacing:.5px;transition:transform .08s, background .12s}
+  .lz:active{transform:scale(.94)}
+  .lz.on{background:var(--g2);color:#04121f;border-color:var(--g2);box-shadow:0 3px 10px rgba(63,169,245,.35)}
   .ob:active{transform:scale(.96)}
   .ob.cancel{margin-left:auto;background:var(--panel-2);color:var(--ink-dim);border-color:var(--line)}
 
@@ -290,6 +294,15 @@
   .lp-row{font-family:'Saira Condensed';font-weight:700;font-size:10px;color:rgba(255,255,255,.65);letter-spacing:.8px}
   .lineup-roster{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px}
   .lineup-roster .lp-h{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.6px;font-size:12px;color:var(--ink-dim);margin-bottom:8px}
+  .lp-62-block{margin-top:16px;background:linear-gradient(180deg,rgba(63,169,245,.06),rgba(63,169,245,.02));border:1px solid rgba(63,169,245,.28);border-radius:12px;padding:12px 14px}
+  .lp-62-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-family:'Saira Condensed';font-weight:700;font-size:14px;color:var(--g2);text-transform:uppercase;letter-spacing:.5px}
+  .lp-62-toggle input{width:20px;height:20px;accent-color:var(--g2)}
+  .lp-62-help{font-size:11px;color:var(--ink-faint);margin:6px 0 10px;line-height:1.5}
+  .lp-62-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .lp-62-grid .lp-62-lab{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.4px;font-size:11px;color:var(--ink-dim);margin-bottom:4px;display:flex;align-items:baseline;gap:6px}
+  .lp-62-grid .lp-62-rot{background:rgba(63,169,245,.15);color:var(--g2);border-radius:4px;padding:1px 6px;font-size:9px;letter-spacing:.5px}
+  .lp-62-grid input{width:100%;background:var(--panel);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--ink);font-family:'Saira Condensed';font-weight:800;font-size:22px;text-align:center}
+  .lp-62-grid input:focus{outline:none;border-color:var(--g2)}
   .lp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 11px;margin:3px;font-family:'Saira Condensed';font-weight:700;font-size:16px;color:var(--ink);cursor:grab;user-select:none;touch-action:none}
   .lp-chip.placed{opacity:.35;cursor:default}
   .lp-chip.dragging{opacity:.5}
@@ -397,17 +410,11 @@
         <input id="su-opppassers" name="pas-x1" data-form-type="other" placeholder="e.g. 3, 8, 11" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
         <div class="roster-help">Only these players show as tap targets when grading opponent. Leave blank to show their full roster.</div>
       </div>
-      <div class="fld" style="border-top:1px solid var(--line);padding-top:14px;margin-top:6px">
-        <label style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="su-opp62-on" style="width:18px;height:18px">
-          <span>Opponent runs a 6-2 — auto-sub S/Oppo pair on rotation change</span>
-        </label>
-        <div class="roster-help">When on: R1-R3 uses Setter A + Oppo A; R4-R6 uses Setter B + Oppo B. Swap happens automatically when you change opponent rotation.</div>
-        <div id="su-opp62-fields" class="hidden" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div><div style="font-size:11px;color:var(--ink-faint);margin-bottom:3px">Setter A (R1-R3, back-row)</div><input id="su-opp62-sA" name="s62a" data-form-type="other" placeholder="#" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-          <div><div style="font-size:11px;color:var(--ink-faint);margin-bottom:3px">Oppo A (R1-R3)</div><input id="su-opp62-oA" name="o62a" data-form-type="other" placeholder="#" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-          <div><div style="font-size:11px;color:var(--ink-faint);margin-bottom:3px">Setter B (R4-R6, back-row)</div><input id="su-opp62-sB" name="s62b" data-form-type="other" placeholder="#" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-          <div><div style="font-size:11px;color:var(--ink-faint);margin-bottom:3px">Oppo B (R4-R6)</div><input id="su-opp62-oB" name="o62b" data-form-type="other" placeholder="#" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+      <!-- 6-2 config moved to the Lineup editor. Hidden inputs kept so existing JS hooks stay wired. -->
+      <div class="fld hidden">
+        <input type="checkbox" id="su-opp62-on">
+        <div id="su-opp62-fields" class="hidden">
+          <input id="su-opp62-sA"><input id="su-opp62-oA"><input id="su-opp62-sB"><input id="su-opp62-oB">
         </div>
       </div>
     </div>
@@ -512,6 +519,17 @@
         <div class="row">
           <span class="alab">Swing</span>
           <div class="pills" id="atktype"></div>
+        </div>
+        <div class="row" style="align-items:flex-start">
+          <span class="alab">Landed</span>
+          <div class="lzgrid" id="lzgrid">
+            <button class="lz" data-lz="T-L-F">4</button>
+            <button class="lz" data-lz="T-M-F">3</button>
+            <button class="lz" data-lz="T-R-F">2</button>
+            <button class="lz" data-lz="T-L-B">5</button>
+            <button class="lz" data-lz="T-M-B">6</button>
+            <button class="lz" data-lz="T-R-B">1</button>
+          </div>
         </div>
         <div class="row" style="margin-bottom:0">
           <span class="alab">Result</span>
@@ -624,6 +642,19 @@
         <div class="lineup-roster">
           <div class="lp-h">Roster (drag onto court)</div>
           <div id="lineup-roster-chips"></div>
+        </div>
+      </div>
+      <div class="lp-62-block">
+        <label class="lp-62-toggle">
+          <input type="checkbox" id="lp-opp62-on">
+          <span>Opponent runs a 6-2 — auto-swap S/Oppo on rotation change</span>
+        </label>
+        <div class="lp-62-help">R1-R3 = Pair A on court · R4-R6 = Pair B on court. When you change opponent rotation the setter and opposite jerseys swap automatically. Their court positions and role tags stay put.</div>
+        <div id="lp-opp62-fields" class="lp-62-grid hidden">
+          <div><div class="lp-62-lab">Setter A <span class="lp-62-rot">R1-R3</span></div><input id="lp-opp62-sA" placeholder="#" inputmode="numeric" autocomplete="off"></div>
+          <div><div class="lp-62-lab">Oppo A <span class="lp-62-rot">R1-R3</span></div><input id="lp-opp62-oA" placeholder="#" inputmode="numeric" autocomplete="off"></div>
+          <div><div class="lp-62-lab">Setter B <span class="lp-62-rot">R4-R6</span></div><input id="lp-opp62-sB" placeholder="#" inputmode="numeric" autocomplete="off"></div>
+          <div><div class="lp-62-lab">Oppo B <span class="lp-62-rot">R4-R6</span></div><input id="lp-opp62-oB" placeholder="#" inputmode="numeric" autocomplete="off"></div>
         </div>
       </div>
     </div>
@@ -1150,6 +1181,11 @@ function renderTagging(){
 
   $('#atktype').innerHTML = TYPES.map(x=>
     `<button class="pill ${x===S.selType?'on':''}" data-type="${x}">${x}</button>`).join('');
+  // Highlight picked landing zone on the big grid (pending state may be null)
+  const lzId = (S.pending && S.pending.lZone) ? S.pending.lZone.id : null;
+  $$('#lzgrid .lz').forEach(b=>{
+    b.classList.toggle('on', b.dataset.lz===lzId);
+  });
 }
 
 function renderAttacks(){
@@ -1800,7 +1836,7 @@ function avgColor(a){ return a>=2.4?'var(--g3)':a>=2.0?'var(--g2)':a>=1.5?'var(-
 /* ============ INTERACTIONS ============ */
 // Use pointerdown for immediate response on iPad — avoids the iOS tap-delay + first-touch-establishes-hover bug
 document.addEventListener('pointerdown',e=>{
-  const t=e.target.closest('[data-grade],[data-p],[data-team],[data-mode],[data-play],[data-addplay],[data-addplay-go],[data-addplay-cancel],[data-setplay],[data-type],[data-out],[data-del],[data-pt],[data-rot],[data-rotnext],[data-arot],[data-arotnext],[data-chartrot],[data-chartkills],[data-toggle-rot],[data-section-toggle],[data-rnrot]');
+  const t=e.target.closest('[data-grade],[data-p],[data-team],[data-mode],[data-play],[data-addplay],[data-addplay-go],[data-addplay-cancel],[data-setplay],[data-type],[data-out],[data-del],[data-pt],[data-rot],[data-rotnext],[data-arot],[data-arotnext],[data-chartrot],[data-chartkills],[data-toggle-rot],[data-section-toggle],[data-rnrot],[data-lz]');
   if(!t) return;
   // Right Now rotation switch
   if(t.dataset.rnrot!==undefined){
@@ -1857,6 +1893,21 @@ document.addEventListener('pointerdown',e=>{
   if(t.dataset.addplay!==undefined){ addPlay(); return; }
   if(t.dataset.setplay!==undefined){ S.setPlay=t.dataset.setplay; renderTagging(); return; }
   if(t.dataset.type!==undefined){ S.selType=t.dataset.type; renderTagging(); return; }
+  if(t.dataset.lz!==undefined){
+    // Big landing-zone grid tap — sets the landing zone without needing court accuracy
+    const zid = t.dataset.lz;
+    if(!S.pending || S.pending.mode!=='zones') S.pending={oZone:null,lZone:null,path:[],mode:'zones'};
+    const z = ZONES.find(z=>z.id===zid);
+    if(z){
+      // Toggle off if same zone is tapped again
+      if(S.pending.lZone && S.pending.lZone.id===zid){ S.pending.lZone=null; }
+      else { S.pending.lZone = z; }
+      rebuildZonePath();
+      renderPending();
+      renderTagging();
+    }
+    return;
+  }
   if(t.dataset.out!==undefined){ finalizeAttack(t.dataset.out); return; }
   if(t.dataset.del!==undefined){ delEvent(t.dataset.del); return; }
   if(t.dataset.pt!==undefined){ adjScore(t.dataset.pt); return; }
@@ -2112,9 +2163,43 @@ const POSITIONS=['OH','MB','S','Oppo','L'];
 
 function openLineupEditor(){
   $('#lineup-title').textContent = `Set ${S.meta.oppName} Lineup`;
+  // Prefill 6-2 fields from meta.opp62
+  const cfg = (S.meta && S.meta.opp62) || {};
+  $('#lp-opp62-on').checked = !!cfg.on;
+  $('#lp-opp62-sA').value = cfg.sA || '';
+  $('#lp-opp62-oA').value = cfg.oA || '';
+  $('#lp-opp62-sB').value = cfg.sB || '';
+  $('#lp-opp62-oB').value = cfg.oB || '';
+  $('#lp-opp62-fields').classList.toggle('hidden', !cfg.on);
   renderLineupEditor();
   $('#lineup').classList.remove('hidden');
 }
+// Toggle 6-2 fields when checkbox flips inside lineup modal
+document.addEventListener('change', e=>{
+  if(e.target && e.target.id==='lp-opp62-on'){
+    $('#lp-opp62-fields').classList.toggle('hidden', !e.target.checked);
+  }
+});
+// Save 6-2 config to meta whenever any field changes (immediate, no separate save button)
+function saveLineup62(){
+  if(!S || !S.meta) return;
+  S.meta.opp62 = {
+    on: $('#lp-opp62-on').checked,
+    sA: $('#lp-opp62-sA').value.trim(),
+    oA: $('#lp-opp62-oA').value.trim(),
+    sB: $('#lp-opp62-sB').value.trim(),
+    oB: $('#lp-opp62-oB').value.trim(),
+  };
+  // Auto-add configured jerseys to opp roster if missing
+  ['sA','oA','sB','oB'].forEach(k=>{
+    const j = S.meta.opp62[k];
+    if(j && !S.meta.oppRoster.includes(j)) S.meta.oppRoster.push(j);
+  });
+}
+['lp-opp62-on','lp-opp62-sA','lp-opp62-oA','lp-opp62-sB','lp-opp62-oB'].forEach(id=>{
+  document.addEventListener('change', e=>{ if(e.target && e.target.id===id) saveLineup62(); });
+  document.addEventListener('input',  e=>{ if(e.target && e.target.id===id) saveLineup62(); });
+});
 
 function renderLineupEditor(){
   const court=$('#lineup-court');
