@@ -57,6 +57,17 @@
   .fld input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:11px 13px;font-size:15px;font-family:inherit}
   .fld input:focus{outline:none;border-color:var(--accent)}
   .roster-help{font-size:12px;color:var(--ink-faint);margin-top:6px}
+  .jchip-picker{background:var(--panel-2);border:1.5px solid var(--line);border-radius:12px;padding:10px}
+  .jchip-list{display:flex;flex-wrap:wrap;gap:6px;min-height:44px;padding:6px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;margin-bottom:10px}
+  .jchip-list:empty::after{content:'No jerseys yet — type a number and tap Add';font-family:'Archivo';font-size:12px;color:var(--ink-faint);font-style:italic;padding:6px 4px}
+  .jchip{display:inline-flex;align-items:center;gap:2px;background:rgba(255,210,74,.14);border:1.5px solid var(--accent);border-radius:8px;padding:4px 4px 4px 12px;font-family:'Saira Condensed';font-weight:800;font-size:18px;color:var(--accent);letter-spacing:.5px}
+  .jchip .x{background:none;border:none;color:var(--accent);font-size:20px;font-weight:800;padding:0 8px;cursor:pointer;line-height:1}
+  .jchip .x:active{color:var(--err)}
+  .jchip-row{display:flex;gap:8px}
+  .jchip-input{flex:1;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;font-family:'Saira Condensed';font-weight:800;font-size:22px;color:var(--ink);text-align:center;letter-spacing:1px}
+  .jchip-input:focus{outline:none;border-color:var(--g2)}
+  .jchip-addbtn{background:var(--accent);color:#1a1205;border:none;border-radius:10px;padding:12px 22px;font-family:'Saira Condensed';font-weight:800;font-size:18px;letter-spacing:.5px;cursor:pointer}
+  .jchip-addbtn:active{transform:scale(.94)}
   .setup-foot{margin-top:24px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
   .resume{font-size:13px;color:var(--ink-dim)}
   .resume b{color:var(--accent)}
@@ -121,8 +132,8 @@
   .ob.blkip{background:rgba(176,107,255,.08);color:#c9a8ff;border-color:rgba(176,107,255,.28)}
   .ob.inp{background:rgba(125,141,160,.16);color:var(--inp);border-color:rgba(125,141,160,.4)}
   .ob.free{background:rgba(90,160,220,.12);color:#7bb8e8;border-color:rgba(90,160,220,.32)}
-  .lzgrid{display:grid;grid-template-columns:repeat(3,minmax(72px,1fr));gap:6px;flex:1}
-  .lz{background:var(--panel-2);border:2px solid var(--line);border-radius:12px;padding:16px 4px;font-family:'Saira Condensed';font-weight:800;font-size:26px;color:var(--ink-dim);letter-spacing:.5px;transition:transform .08s, background .12s}
+  .lzgrid{display:grid;grid-template-columns:repeat(3,minmax(56px,1fr));gap:4px;flex:1}
+  .lz{background:var(--panel-2);border:1.5px solid var(--line);border-radius:8px;padding:6px 4px;font-family:'Saira Condensed';font-weight:800;font-size:17px;color:var(--ink-dim);letter-spacing:.5px;transition:transform .08s, background .12s}
   .lz:active{transform:scale(.94)}
   .lz.on{background:var(--g2);color:#04121f;border-color:var(--g2);box-shadow:0 3px 10px rgba(63,169,245,.35)}
   .ob:active{transform:scale(.96)}
@@ -392,23 +403,27 @@
       </div>
       <div class="fld">
         <label>Our Roster — jersey #s</label>
-        <input id="su-ourroster" name="ros-x0" data-form-type="other" placeholder="1, 4, 7, 10, 12, 15" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <div class="roster-help">Comma-separated.</div>
+        <div class="jchip-picker" data-for="su-ourroster"></div>
+        <input class="hidden" id="su-ourroster" name="ros-x0" data-form-type="other">
+        <div class="roster-help">Type a jersey → tap Add (or press return). Tap a chip's ✕ to remove.</div>
       </div>
       <div class="fld">
         <label>Our Passers — jersey #s (subset of roster)</label>
-        <input id="su-ourpassers" name="pas-x0" data-form-type="other" placeholder="e.g. 4, 7, 12" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <div class="roster-help">Only these players show as tap targets when grading (OHs + libero, usually). Leave blank to show everyone.</div>
+        <div class="jchip-picker" data-for="su-ourpassers"></div>
+        <input class="hidden" id="su-ourpassers" name="pas-x0" data-form-type="other">
+        <div class="roster-help">Just your OHs + libero, usually. Leave empty to show everyone.</div>
       </div>
       <div class="fld">
         <label>Opponent Roster — jersey #s</label>
-        <input id="su-opproster" name="ros-x1" data-form-type="other" placeholder="2, 3, 5, 8, 11, 14" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <div class="roster-help">Optional — leave blank to grade opponent as a team.</div>
+        <div class="jchip-picker" data-for="su-opproster"></div>
+        <input class="hidden" id="su-opproster" name="ros-x1" data-form-type="other">
+        <div class="roster-help">Optional — leave empty to grade opponent as a team.</div>
       </div>
       <div class="fld">
         <label>Opponent Passers — jersey #s (subset of opp roster)</label>
-        <input id="su-opppassers" name="pas-x1" data-form-type="other" placeholder="e.g. 3, 8, 11" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <div class="roster-help">Only these players show as tap targets when grading opponent. Leave blank to show their full roster.</div>
+        <div class="jchip-picker" data-for="su-opppassers"></div>
+        <input class="hidden" id="su-opppassers" name="pas-x1" data-form-type="other">
+        <div class="roster-help">Their expected passers. Leave empty to show their whole roster.</div>
       </div>
       <!-- 6-2 config moved to the Lineup editor. Hidden inputs kept so existing JS hooks stay wired. -->
       <div class="fld hidden">
@@ -523,12 +538,12 @@
         <div class="row" style="align-items:flex-start">
           <span class="alab">Landed</span>
           <div class="lzgrid" id="lzgrid">
-            <button class="lz" data-lz="T-L-F">4</button>
-            <button class="lz" data-lz="T-M-F">3</button>
-            <button class="lz" data-lz="T-R-F">2</button>
-            <button class="lz" data-lz="T-L-B">5</button>
-            <button class="lz" data-lz="T-M-B">6</button>
-            <button class="lz" data-lz="T-R-B">1</button>
+            <button class="lz" data-lz="B-L-F">4</button>
+            <button class="lz" data-lz="B-M-F">3</button>
+            <button class="lz" data-lz="B-R-F">2</button>
+            <button class="lz" data-lz="B-L-B">5</button>
+            <button class="lz" data-lz="B-M-B">6</button>
+            <button class="lz" data-lz="B-R-B">1</button>
           </div>
         </div>
         <div class="row" style="margin-bottom:0">
@@ -742,12 +757,81 @@ async function boot(){
       $('#su-opp62-oB').value = opp62.oB||'';
       if(opp62.on) $('#su-opp62-fields').classList.remove('hidden');
     }
+    if(typeof syncChipPickers==='function') syncChipPickers();
   }
 }
 function parseRoster(str){
   // Any run of non-alphanumeric characters is a separator (comma, space, semicolon, curly quote, etc.)
   return String(str||'').split(/[^A-Za-z0-9]+/).map(x=>x.trim()).filter(Boolean);
 }
+
+/* ============ CHIP PICKER for jersey rosters ============
+   Renders a big number pad + chip list into each .jchip-picker element,
+   and syncs the chip list to a comma-separated value on the associated hidden <input>.
+*/
+// Chip picker with a small numeric text field + Add button (uses iPad's native number keyboard)
+function renderChipPicker(el){
+  const inputId = el.dataset.for;
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  const nums = parseRoster(input.value);
+  const chips = nums.map(n=>`<span class="jchip">#${n}<button class="x" data-cp-del="${n}" aria-label="Remove ${n}">✕</button></span>`).join('');
+  el.innerHTML = `
+    <div class="jchip-list">${chips}</div>
+    <div class="jchip-row">
+      <input class="jchip-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="#" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="jchip-addbtn" data-cp-add="1">Add</button>
+    </div>`;
+}
+function chipPickerAdd(el){
+  const input = document.getElementById(el.dataset.for);
+  const field = el.querySelector('.jchip-input');
+  const buf = (field && field.value || '').trim().replace(/[^0-9A-Za-z]/g,'');
+  if(!buf) return;
+  const cur = parseRoster(input.value);
+  if(!cur.includes(buf)) cur.push(buf);
+  input.value = cur.join(', ');
+  input.dispatchEvent(new Event('input', {bubbles:true}));
+  renderChipPicker(el);
+  // Keep focus in the input for rapid entry
+  const newField = el.querySelector('.jchip-input');
+  if(newField) newField.focus();
+}
+function chipPickerDel(el, jersey){
+  const input = document.getElementById(el.dataset.for);
+  const cur = parseRoster(input.value).filter(j=>j!==jersey);
+  input.value = cur.join(', ');
+  input.dispatchEvent(new Event('input', {bubbles:true}));
+  renderChipPicker(el);
+}
+// Delegated tap handler for Add and chip-remove
+document.addEventListener('pointerdown', e=>{
+  const t = e.target.closest('[data-cp-add],[data-cp-del]');
+  if(!t) return;
+  const picker = t.closest('.jchip-picker');
+  if(!picker) return;
+  e.preventDefault();
+  if(t.dataset.cpAdd !== undefined) chipPickerAdd(picker);
+  else if(t.dataset.cpDel !== undefined) chipPickerDel(picker, t.dataset.cpDel);
+});
+// Enter key inside the input also commits (native return key on iPad keyboard)
+document.addEventListener('keydown', e=>{
+  if(e.key !== 'Enter') return;
+  const field = e.target.closest && e.target.closest('.jchip-input');
+  if(!field) return;
+  const picker = field.closest('.jchip-picker');
+  if(picker){ e.preventDefault(); chipPickerAdd(picker); }
+});
+// Initialize all pickers on the page (call after any UI change that adds new ones too)
+function initChipPickers(){
+  document.querySelectorAll('.jchip-picker').forEach(el=>renderChipPicker(el));
+}
+// Re-render pickers whenever their input's value changes from elsewhere (e.g. prefill)
+function syncChipPickers(){
+  document.querySelectorAll('.jchip-picker').forEach(el=>renderChipPicker(el));
+}
+// Initial paint (fires when script runs)
+initChipPickers();
 
 // Auto-swap opponent setter and opposite based on rotation, if 6-2 is configured
 // Pair A (sA + oA) is on court for rotations 1, 2, 3
@@ -2047,6 +2131,7 @@ $('#menu-edit').onclick=()=>{
   $('#su-opp62-oB').value = opp62.oB||'';
   $('#su-opp62-fields').classList.toggle('hidden', !opp62.on);
   $('#menu').classList.add('hidden'); $('#app').classList.add('hidden'); $('#setup').classList.remove('hidden');
+  if(typeof syncChipPickers==='function') syncChipPickers();
   $('#su-start').textContent='Save & Continue';
   $('#su-start').onclick=()=>{
     S.meta.ourName=$('#su-ourname').value.trim()||'Our Team';
