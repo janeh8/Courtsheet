@@ -96,7 +96,8 @@
   .hbtn.warn:active{background:var(--g0);color:#fff}
   .hbtn svg{width:16px;height:16px}
 
-  main{flex:1;display:grid;grid-template-columns:minmax(300px,40%) 1fr;gap:12px;padding:12px;overflow:hidden}
+  main{flex:1;display:flex;flex-direction:column;gap:10px;padding:12px;overflow:hidden}
+  .atk-rot-standalone{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;flex:0 0 auto}
   @media (max-width:840px){
     main{grid-template-columns:1fr;overflow:auto}
   }
@@ -378,6 +379,63 @@
   .kpi{flex:1;min-width:120px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px}
   .kpi .v{font-family:'Saira Condensed';font-weight:800;font-size:28px;line-height:1}
   .kpi .l{font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+  /* ============ PRINT / PDF EXPORT ============
+     When the user taps "Print / Save PDF" from the report modal, we want the printed page
+     to show ONLY the report — with a clean light theme, readable colors, and the same
+     visual layout you see on screen. Hide the app chrome, header, live panels, and everything
+     else. Un-hide the report modal so its contents flow onto the printed pages.
+  */
+  @media print {
+    @page { margin: 12mm; }
+    :root {
+      --bg: #fff; --panel: #fff; --panel-2: #f4f5f7; --line: #d0d3d8;
+      --ink: #101317; --ink-dim: #40474f; --ink-faint: #6b737b;
+      --accent: #b8860b; --g2: #1f6fb0; --g3: #2f9257;
+      --kill: #2b7d3e; --err: #b32424; --blk: #6b3fb0; --inp: #667179;
+      --court: #e8e2c3; --court-back: #d9d2af; --court-line: #5a4a1a;
+    }
+    body { background: #fff !important; color: #101317 !important; }
+    /* Kill everything that isn't the report itself */
+    header, .setup, #app > main, #menu, #lineup, #sub-modal,
+    .modal.hidden { display: none !important; }
+    /* Force the report modal to fully show (it uses .hidden normally) */
+    .modal#report { position: static !important; background: #fff !important; display: block !important; }
+    .modal#report .modal-card { max-width: none !important; width: 100% !important; background: #fff !important; border: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; max-height: none !important; overflow: visible !important; }
+    .modal#report .modal-head { border-bottom: 2px solid #101317 !important; padding: 0 0 8px 0 !important; margin-bottom: 14px !important; }
+    .modal#report .modal-head h2 { font-size: 18pt !important; color: #101317 !important; margin: 0 !important; }
+    /* Hide the action buttons in the report head (Print/CSV/Close) — no point on paper */
+    .modal#report .modal-head > div:last-child { display: none !important; }
+    .modal-body { overflow: visible !important; max-height: none !important; padding: 0 !important; }
+    /* Section headings, tables, KPI tiles */
+    .rep-sec { page-break-inside: avoid; margin-bottom: 14px !important; }
+    .rep-sec h4 { font-size: 13pt !important; color: #101317 !important; border-bottom: 1px solid #c0c4c8; padding-bottom: 3px; margin-bottom: 8px !important; }
+    table.stat, table.sp-table { width: 100% !important; border-collapse: collapse !important; font-size: 10pt !important; }
+    table.stat th, table.stat td, table.sp-table th, table.sp-table td { border-bottom: 1px solid #d0d3d8 !important; padding: 4px 6px !important; color: #101317 !important; }
+    table.stat th, table.sp-table th { background: #eef0f3 !important; text-align: left !important; }
+    .kpi { background: #f4f5f7 !important; border: 1px solid #d0d3d8 !important; }
+    .kpi .v { color: #101317 !important; }
+    /* Rotation cards (Who's Getting Set / What They Run) */
+    .rc-card, .rc-detail, .pgc-rot, .pgc-block { background: #fff !important; border: 1px solid #d0d3d8 !important; page-break-inside: avoid; color: #101317 !important; }
+    .rc-card .rc-rot, .pgc-r { color: #1f6fb0 !important; }
+    .rc-play, .rc-topplay, .pgc-top { background: #eef4fa !important; color: #1f6fb0 !important; border: 1px solid #1f6fb0 !important; }
+    .rc-play.rc-kill, .rc-play.rc-set.rc-kill { background: #e6f3ea !important; color: #2b7d3e !important; border-color: #2b7d3e !important; }
+    /* Expanded detail: force open in print — otherwise readers only see one-line summaries */
+    .rc-card { display: block !important; }
+    .rc-detail { display: block !important; }
+    /* Right Now / Auto Read cards: hide the ephemeral "right now" from the report if present */
+    .rn-card, .autoread { display: none !important; }
+    /* SVG shot chart uses court background — override for print */
+    svg { max-width: 100% !important; height: auto !important; }
+    /* Sensible page breaks between big sections */
+    .rep-sec:has(h4) { break-inside: avoid-page; }
+    /* Chart legend / filter buttons: don't clutter print */
+    .chart-filters, .cf { display: none !important; }
+    /* Live log has no meaning on paper */
+    #log, #live-stats { display: none !important; }
+    /* Muted colors */
+    a { color: #1f6fb0 !important; text-decoration: none; }
+  }
 </style>
 </head>
 <body>
@@ -460,23 +518,9 @@
   </header>
 
   <main>
-    <!-- COURT -->
-    <div class="court-wrap">
-      <div class="court-head">
-        <span class="t">Attack Map <span id="atk-which-head" style="font-family:'Archivo';font-weight:600;font-size:11px;color:var(--g2);text-transform:none;letter-spacing:0"></span></span>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="seg" id="atk-mode">
-            <button data-mode="zones" class="on">Zones</button>
-            <button data-mode="draw">Draw</button>
-          </div>
-        </div>
-      </div>
+    <!-- Opponent rotation control (formerly inside the Attack Map card) -->
+    <div class="atk-rot-standalone">
       <div class="atk-rotrow" id="atk-rotctl"></div>
-      <div class="court-stage">
-        <svg class="court" id="court" viewBox="0 0 360 600" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="court-hint" id="court-hint">Press and drag to draw the attack path</div>
-      </div>
-      <div class="pending-bar" id="pending-bar"></div>
     </div>
 
     <!-- CONTROLS -->
@@ -582,7 +626,7 @@
       <h2 id="rep-title">Match Report</h2>
       <div style="display:flex;gap:8px">
         <button class="hbtn" id="rep-csv">⬇ CSV</button>
-        <button class="hbtn" id="rep-print">⎙ Print</button>
+        <button class="hbtn" id="rep-print">⎙ Print / Save PDF</button>
         <button class="hbtn" id="rep-close">✕ Close</button>
       </div>
     </div>
@@ -952,6 +996,7 @@ function zoneLabel(id){
 }
 function drawCourt(){
   const c=$('#court');
+  if(!c) return; // side court removed — no-op
   const line='var(--court-line)';
   c.innerHTML=`
     <rect x="0" y="0" width="${CW}" height="${CH}" rx="14" fill="var(--bg)"/>
@@ -1045,9 +1090,9 @@ function setCourtHint(){
 }
 function renderPending(){
   const layer=$('#pending-layer'); const bar=$('#pending-bar');
-  if(!layer) return;
-  if(!S.pending){ layer.innerHTML=''; bar.innerHTML=''; setCourtHint(); return; }
-  $('#court-hint').style.opacity=0;
+  if(!layer) return; // side court removed — no-op
+  if(!S.pending){ layer.innerHTML=''; if(bar) bar.innerHTML=''; setCourtHint(); return; }
+  const h=$('#court-hint'); if(h) h.style.opacity=0;
   const pcol = S.atkTeam==='ours' ? 'var(--accent)' : 'var(--g2)';
   const pts=S.pending.path;
 
@@ -1058,13 +1103,14 @@ function renderPending(){
     if(S.pending.lZone) svg+=hi(S.pending.lZone);
     svg+=pathSvg(pts,pcol,1,true);
     layer.innerHTML=svg;
-    const ready = !!(S.pending.lZone||S.pending.oZone);
-    if(S.pending.lZone){
-      bar.innerHTML = `<span class="lbl">✓ Lands <b style="color:${pcol}">${zoneLabel(S.pending.lZone.id)}</b>${S.pending.oZone?` from <b style="color:${pcol}">${zoneLabel(S.pending.oZone.id)}</b>`:''} — pick result →</span>
-        <button class="ob cancel" data-out="_cancel">Clear</button>`;
-    } else {
-      bar.innerHTML = `<span class="lbl">Origin set — now tap where it lands (bottom half)</span>
-        <button class="ob cancel" data-out="_cancel">Clear</button>`;
+    if(bar){
+      if(S.pending.lZone){
+        bar.innerHTML = `<span class="lbl">✓ Lands <b style="color:${pcol}">${zoneLabel(S.pending.lZone.id)}</b>${S.pending.oZone?` from <b style="color:${pcol}">${zoneLabel(S.pending.oZone.id)}</b>`:''} — pick result →</span>
+          <button class="ob cancel" data-out="_cancel">Clear</button>`;
+      } else {
+        bar.innerHTML = `<span class="lbl">Origin set — now tap where it lands (bottom half)</span>
+          <button class="ob cancel" data-out="_cancel">Clear</button>`;
+      }
     }
     return;
   }
@@ -1072,6 +1118,7 @@ function renderPending(){
   // draw mode
   layer.innerHTML = pathSvg(pts,pcol,1,true);
   const drawn = pts.length>=2;
+  if(bar){
   if(S.pending.drawing){
     bar.innerHTML = `<span class="lbl">Drawing… lift your finger to finish</span>`;
   } else if(drawn){
@@ -1081,6 +1128,7 @@ function renderPending(){
     bar.innerHTML = `<span class="lbl">Press &amp; drag on the court to trace the attack…</span>
       <button class="ob cancel" data-out="_cancel">Clear</button>`;
   }
+  } // end bar guard
 }
 function dot(x,y,col,filled){
   return `<circle cx="${x}" cy="${y}" r="6" fill="${filled?col:'var(--bg)'}" stroke="${col}" stroke-width="2.5"/>`;
@@ -2412,7 +2460,21 @@ $('#menu-new').onclick=()=>{
 $('#btn-report').onclick=openReport;
 $('#rep-close').onclick=()=>$('#report').classList.add('hidden');
 $('#rep-csv').onclick=exportCSV;
-$('#rep-print').onclick=()=>window.print();
+$('#rep-print').onclick=()=>{
+  // Force all rotations open in the printed report so readers see full detail (no tap-to-expand on paper)
+  const savedExpansion = Object.assign({}, S.expandedRots || {});
+  const oppAtk = S.events.filter(e=>e.kind==='attack'&&e.team==='opp');
+  const rotsPresent = [...new Set(oppAtk.map(e=>e.rot).filter(Boolean))];
+  S.expandedRots = S.expandedRots || {};
+  rotsPresent.forEach(r=>{ S.expandedRots[r] = true; });
+  openReport();               // re-render report body with everything expanded
+  setTimeout(()=>{
+    window.print();
+    // After the print dialog closes, restore the previous expand state and re-render
+    S.expandedRots = savedExpansion;
+    openReport();
+  }, 60);
+};
 
 function openReport(){
   $('#rep-title').textContent=`${S.meta.ourName} vs ${S.meta.oppName} — ${S.meta.date}`;
