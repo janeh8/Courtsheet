@@ -96,8 +96,7 @@
   .hbtn.warn:active{background:var(--g0);color:#fff}
   .hbtn svg{width:16px;height:16px}
 
-  main{flex:1;display:flex;flex-direction:column;gap:10px;padding:12px;overflow:hidden}
-  .atk-rot-standalone{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;flex:0 0 auto}
+  main{flex:1;display:grid;grid-template-columns:minmax(300px,40%) 1fr;gap:12px;padding:12px;overflow:hidden}
   @media (max-width:840px){
     main{grid-template-columns:1fr;overflow:auto}
   }
@@ -180,6 +179,29 @@
   .grade.g2{background:rgba(63,169,245,.14);color:var(--g2);border-color:rgba(63,169,245,.45)}
   .grade.g1{background:rgba(245,181,61,.14);color:var(--g1);border-color:rgba(245,181,61,.45)}
   .grade.g0{background:rgba(255,93,93,.14);color:var(--g0);border-color:rgba(255,93,93,.45)}
+
+  /* passing summary strip inside the Passing card */
+  .pass-summary{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px}
+  .pass-summary .ps-empty{font-size:11px;color:var(--ink-faint);font-style:italic;text-align:center;padding:4px}
+  .pass-summary .ps-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .pass-summary .ps-team{font-family:'Saira Condensed';font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+  .pass-summary .ps-tots{display:flex;gap:8px;align-items:center}
+  .pass-summary .ps-mini{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;display:inline-flex;align-items:baseline;gap:4px}
+  .pass-summary .ps-mini .ps-mini-l{font-family:'Saira Condensed';font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);margin-right:2px}
+  .pass-summary .ps-mini b{font-family:'Saira Condensed';font-weight:800;font-size:15px}
+  .pass-summary .ps-mini i{font-style:normal;color:var(--ink-faint);font-size:10px}
+  .pass-summary .ps-rotstrip{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+  .pass-summary .ps-rot-cell{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:3px 1px;text-align:center;font-family:'Archivo'}
+  .pass-summary .ps-rot-cell.ps-rot-cur{border-color:var(--accent);background:rgba(255,210,74,.08)}
+  .pass-summary .ps-rot-n{font-family:'Saira Condensed';font-weight:700;font-size:9px;color:var(--ink-faint);letter-spacing:.5px}
+  .pass-summary .ps-rot-v{font-family:'Saira Condensed';font-weight:800;font-size:13px;line-height:1}
+  .pass-summary .ps-rot-c{font-size:9px;color:var(--ink-faint);line-height:1}
+  .pass-summary .ps-ranks{display:flex;gap:6px;flex-wrap:wrap}
+  .pass-summary .ps-tag{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;display:inline-flex;align-items:baseline;gap:4px}
+  .pass-summary .ps-tag b{font-family:'Saira Condensed';font-weight:800;font-size:13px}
+  .pass-summary .ps-tag i{font-style:normal;color:var(--ink-faint);font-size:10px}
+  .pass-summary .ps-low{border-left:3px solid var(--err)}
+  .pass-summary .ps-high{border-left:3px solid var(--kill)}
 
   .pills{display:flex;gap:6px;flex-wrap:wrap}
   .pill{padding:8px 13px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink-dim)}
@@ -518,9 +540,23 @@
   </header>
 
   <main>
-    <!-- Opponent rotation control (formerly inside the Attack Map card) -->
-    <div class="atk-rot-standalone">
+    <!-- COURT (restored — attack map on the left) -->
+    <div class="court-wrap">
+      <div class="court-head">
+        <span class="t">Attack Map <span id="atk-which-head" style="font-family:'Archivo';font-weight:600;font-size:11px;color:var(--g2);text-transform:none;letter-spacing:0"></span></span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="seg" id="atk-mode">
+            <button data-mode="zones" class="on">Zones</button>
+            <button data-mode="draw">Draw</button>
+          </div>
+        </div>
+      </div>
       <div class="atk-rotrow" id="atk-rotctl"></div>
+      <div class="court-stage">
+        <svg class="court" id="court" viewBox="0 0 360 600" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="court-hint" id="court-hint">Press and drag to draw the attack path</div>
+      </div>
+      <div class="pending-bar" id="pending-bar"></div>
     </div>
 
     <!-- CONTROLS -->
@@ -561,6 +597,8 @@
           <button class="grade g1" data-grade="1"><span class="g">1</span><span class="d">Poor</span></button>
           <button class="grade g0" data-grade="0"><span class="g">0</span><span class="d">Ace / Shank</span></button>
         </div>
+        <!-- Live passing summary — stays inside the Passing card so you don't scroll -->
+        <div class="pass-summary" id="pass-summary"></div>
       </div>
 
       <!-- ATTACK / PLAY COMBINATION -->
@@ -1097,10 +1135,30 @@ function renderPending(){
   const pts=S.pending.path;
 
   if(S.pending.mode==='zones'){
-    const hi=z=>`<rect x="${z.x0}" y="${z.y0}" width="${z.x1-z.x0}" height="${z.y1-z.y0}" rx="6" fill="${pcol}" opacity=".18" stroke="${pcol}" stroke-width="2"/>`;
+    // Position number lookup for highlighted zone labels
+    const posNum = id => {
+      const [side,col,row]=id.split('-');
+      // Our (bottom) side: 4-3-2 front, 5-6-1 back
+      if(side==='B'){ return row==='F' ? ({L:4,M:3,R:2})[col] : ({L:5,M:6,R:1})[col]; }
+      // Opp (top) side (from our viewpoint, their 4-3-2 is OUR R-M-L mirrored): 2-3-4 front, 1-6-5 back
+      return row==='F' ? ({L:2,M:3,R:4})[col] : ({L:1,M:6,R:5})[col];
+    };
+    const hi=(z,isLanding)=>{
+      const cx=(z.x0+z.x1)/2, cy=(z.y0+z.y1)/2;
+      const n = posNum(z.id);
+      // Much more visible: stronger fill, thick stroke, big position number inside, pulsing outer ring
+      return `
+        <rect x="${z.x0+2}" y="${z.y0+2}" width="${z.x1-z.x0-4}" height="${z.y1-z.y0-4}" rx="10" fill="${pcol}" fill-opacity=".35" stroke="${pcol}" stroke-width="5"/>
+        <rect x="${z.x0-2}" y="${z.y0-2}" width="${z.x1-z.x0+4}" height="${z.y1-z.y0+4}" rx="12" fill="none" stroke="${pcol}" stroke-width="2" stroke-opacity=".5">
+          <animate attributeName="stroke-opacity" values=".5;.1;.5" dur="1.4s" repeatCount="indefinite"/>
+        </rect>
+        <text x="${cx}" y="${cy+16}" text-anchor="middle" font-family="Saira Condensed" font-weight="800" font-size="48" fill="#ffffff" fill-opacity=".92" stroke="${pcol}" stroke-width="2" paint-order="stroke">${n||''}</text>
+        <text x="${cx}" y="${cy+30}" text-anchor="middle" font-family="Saira Condensed" font-weight="700" font-size="11" fill="#ffffff" fill-opacity=".85" letter-spacing="1.5">${isLanding?'LANDED':'ORIGIN'}</text>
+      `;
+    };
     let svg='';
-    if(S.pending.oZone) svg+=hi(S.pending.oZone);
-    if(S.pending.lZone) svg+=hi(S.pending.lZone);
+    if(S.pending.oZone) svg+=hi(S.pending.oZone,false);
+    if(S.pending.lZone) svg+=hi(S.pending.lZone,true);
     svg+=pathSvg(pts,pcol,1,true);
     layer.innerHTML=svg;
     if(bar){
@@ -1188,7 +1246,62 @@ function resetPending(){
 }
 
 /* ============ RENDER ============ */
-function renderAll(){ syncToggles(); renderHeader(); renderRot(); renderPassers(); renderTagging(); renderAttacks(); renderPending(); renderLog(); renderStats(); }
+function renderAll(){ syncToggles(); renderHeader(); renderRot(); renderPassers(); renderTagging(); renderAttacks(); renderPending(); renderLog(); renderPassSummary(); renderStats(); }
+
+/* Compact passing summary strip inside the Passing card — so stats are visible without scrolling */
+function renderPassSummary(){
+  const box = document.getElementById('pass-summary');
+  if(!box) return;
+  const team = S.passTeam || 'ours';
+  const rot = team==='ours' ? S.ourRot : S.oppRot;
+  const label = team==='ours' ? (S.meta.ourName||'Our') : (S.meta.oppName||'Opp');
+  const col = team==='ours' ? 'var(--accent)' : 'var(--g2)';
+  const rs = rotStats(team);
+  const ps = passStats(team);
+  // overall totals
+  let totSum=0, totN=0;
+  Object.values(ps).forEach(o=>{ totSum+=o.sum; totN+=o.n; });
+  if(totN===0){
+    box.innerHTML = `<div class="ps-empty">No ${esc(label)} passes graded yet — summary appears as you log.</div>`;
+    return;
+  }
+  const overallAvg = totSum/totN;
+  const rotData = rs[rot] || {sum:0,n:0};
+  const rotAvg = rotData.n ? rotData.sum/rotData.n : null;
+  // worst passer (min 2 passes)
+  const rows = Object.entries(ps).filter(([k,o])=>o.n>=2 && k!=='TEAM').map(([k,o])=>({k, avg:o.sum/o.n, n:o.n}));
+  rows.sort((a,b)=>a.avg-b.avg);
+  const worst = rows[0];
+  const best = rows[rows.length-1];
+  // rotation strip — tiny version
+  let rotCells='';
+  for(let i=1;i<=6;i++){
+    const o=rs[i]; const avg=o.n?(o.sum/o.n):null;
+    const c=avg==null?'var(--ink-faint)':avgColor(avg);
+    const current = (i===rot) ? 'ps-rot-cur' : '';
+    rotCells += `<div class="ps-rot-cell ${current}">
+      <div class="ps-rot-n">R${i}</div>
+      <div class="ps-rot-v" style="color:${c}">${avg==null?'–':avg.toFixed(2)}</div>
+      <div class="ps-rot-c">${o.n}</div>
+    </div>`;
+  }
+  const overallCol = avgColor(overallAvg);
+  const rotCol = rotAvg==null?'var(--ink-faint)':avgColor(rotAvg);
+  box.innerHTML = `
+    <div class="ps-head">
+      <span class="ps-team" style="color:${col}">${esc(label)} passing</span>
+      <span class="ps-tots">
+        <span class="ps-mini"><span class="ps-mini-l">R${rot}</span><b style="color:${rotCol}">${rotAvg==null?'–':rotAvg.toFixed(2)}</b> <i>${rotData.n}</i></span>
+        <span class="ps-mini"><span class="ps-mini-l">Overall</span><b style="color:${overallCol}">${overallAvg.toFixed(2)}</b> <i>${totN}</i></span>
+      </span>
+    </div>
+    <div class="ps-rotstrip">${rotCells}</div>
+    ${rows.length ? `<div class="ps-ranks">
+      ${worst ? `<span class="ps-tag ps-low">Low · #${esc(worst.k)} <b style="color:${avgColor(worst.avg)}">${worst.avg.toFixed(2)}</b> <i>(${worst.n})</i></span>` : ''}
+      ${best && best.k!==worst.k ? `<span class="ps-tag ps-high">High · #${esc(best.k)} <b style="color:${avgColor(best.avg)}">${best.avg.toFixed(2)}</b> <i>(${best.n})</i></span>` : ''}
+    </div>` : ''}
+  `;
+}
 function syncToggles(){
   $$('#atk-mode button').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.atkMode));
 }
@@ -1636,8 +1749,8 @@ function renderStats(){
   html+=rotStrip('','ours','var(--accent)');
   html+=passTable('',our,'var(--accent)');
 
-  // Shot chart (visual companion to section 1)
-  html+=shotChart(oppAtk);
+  // Shot chart in Live Stats removed per request — landing zones highlight on the main court instead.
+  // (shotChart() still exists for use in the printed Report if we add it back there.)
 
   box.innerHTML=html||`<div class="empty">Stats appear as you log.</div>`;
 }
