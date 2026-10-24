@@ -925,19 +925,27 @@ function apply62Autosub(newRot){
   if(!cfg.sA || !cfg.oA || !cfg.sB || !cfg.oB) return false;
   if(!S.oppLineup) return false;
   const inFirstHalf = newRot>=1 && newRot<=3;
-  const activeS = inFirstHalf ? cfg.sA : cfg.sB;
-  const inactiveS = inFirstHalf ? cfg.sB : cfg.sA;
-  const activeO = inFirstHalf ? cfg.oA : cfg.oB;
-  const inactiveO = inFirstHalf ? cfg.oB : cfg.oA;
+  const activeS   = inFirstHalf ? cfg.sA : cfg.sB;  // setter who should BE on court
+  const inactiveS = inFirstHalf ? cfg.sB : cfg.sA;  // setter who should BE OFF court
+  const activeO   = inFirstHalf ? cfg.oA : cfg.oB;  // oppo hitter who should BE on court
+  const inactiveO = inFirstHalf ? cfg.oB : cfg.oA;  // oppo hitter who should BE OFF court
   let changed = false;
-  // Find each inactive jersey on court and swap in the active one, keeping position + role tag
+  // CROSS SUB: in a real 6-2, when the setter rotates to the front row she subs out —
+  // and the OPPOSITE from the other pair takes her seat (as a hitter), while the new setter
+  // enters at the departing oppo's back-row seat.
+  // So the swap is:
+  //   seat holding inactive-Setter  →  gets active-Oppo (hitter)
+  //   seat holding inactive-Oppo    →  gets active-Setter
+  // The role tag ("S" / "Oppo") must swap too so the lineup shows the right role per seat.
   Object.entries(S.oppLineup).forEach(([pos, p])=>{
     if(!p) return;
     if(p.jersey === inactiveS){
-      S.oppLineup[pos] = { ...p, jersey: activeS };
+      // Setter's seat now holds the oppo hitter from the active pair
+      S.oppLineup[pos] = { ...p, jersey: activeO, position: 'Oppo' };
       changed = true;
     } else if(p.jersey === inactiveO){
-      S.oppLineup[pos] = { ...p, jersey: activeO };
+      // Oppo's seat now holds the setter from the active pair
+      S.oppLineup[pos] = { ...p, jersey: activeS, position: 'S' };
       changed = true;
     }
   });
