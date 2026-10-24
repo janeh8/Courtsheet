@@ -919,38 +919,12 @@ initChipPickers();
 // Pair A (sA + oA) is on court for rotations 1, 2, 3
 // Pair B (sB + oB) is on court for rotations 4, 5, 6
 // The swap edits S.oppLineup in place. Returns true if any change happened.
-function apply62Autosub(newRot){
-  const cfg = S.meta && S.meta.opp62;
-  if(!cfg || !cfg.on) return false;
-  if(!cfg.sA || !cfg.oA || !cfg.sB || !cfg.oB) return false;
-  if(!S.oppLineup) return false;
-  const inFirstHalf = newRot>=1 && newRot<=3;
-  const activeS   = inFirstHalf ? cfg.sA : cfg.sB;  // setter who should BE on court
-  const inactiveS = inFirstHalf ? cfg.sB : cfg.sA;  // setter who should BE OFF court
-  const activeO   = inFirstHalf ? cfg.oA : cfg.oB;  // oppo hitter who should BE on court
-  const inactiveO = inFirstHalf ? cfg.oB : cfg.oA;  // oppo hitter who should BE OFF court
-  let changed = false;
-  // CROSS SUB: in a real 6-2, when the setter rotates to the front row she subs out —
-  // and the OPPOSITE from the other pair takes her seat (as a hitter), while the new setter
-  // enters at the departing oppo's back-row seat.
-  // So the swap is:
-  //   seat holding inactive-Setter  →  gets active-Oppo (hitter)
-  //   seat holding inactive-Oppo    →  gets active-Setter
-  // The role tag ("S" / "Oppo") must swap too so the lineup shows the right role per seat.
-  Object.entries(S.oppLineup).forEach(([pos, p])=>{
-    if(!p) return;
-    if(p.jersey === inactiveS){
-      // Setter's seat now holds the oppo hitter from the active pair
-      S.oppLineup[pos] = { ...p, jersey: activeO, position: 'Oppo' };
-      changed = true;
-    } else if(p.jersey === inactiveO){
-      // Oppo's seat now holds the setter from the active pair
-      S.oppLineup[pos] = { ...p, jersey: activeS, position: 'S' };
-      changed = true;
-    }
-  });
-  return changed;
-}
+// NOTE: the 6-2 sub is now applied VIRTUALLY inside lineupForRot() when a view asks for a given
+// rotation. We no longer mutate the stored oppLineup here, so every view (Right Now, Who's Getting
+// Set, Report, Attack Map rotation strip) shows the correctly-subbed lineup regardless of which
+// rotation knob the user tapped. This function is kept as a no-op for backward compatibility
+// with earlier call sites and to let a future user re-detect any legacy mutated state.
+function apply62Autosub(newRot){ return false; }
 // Toggle 6-2 field visibility when checkbox changes
 document.addEventListener('change', e=>{
   if(e.target && e.target.id==='su-opp62-on'){
@@ -2195,13 +2169,39 @@ function lineupForRot(rot){
   const lineup={};
   const R1=S.oppLineup||{};
   if(Object.keys(R1).length<6) return null;
-  // For rotation R (1..6), each position P holds: R1's position mapped by (R-1) rotations
-  // rot=1: identity. rot=2: whoever was at 2 in R1 is now at 1, whoever at 3 is at 2, etc.
-  // General rule: player at pos P in rot R = R1's position ((P + R - 2) mod 6) + 1
+  // 1) Rotate the stored R1 placement by (rot-1) clockwise shifts to find who's where at this rotation.
   const shift=rot-1;
   for(let p=1;p<=6;p++){
     const src=((p-1+shift)%6)+1;
     lineup[p]=R1[src];
+  }
+  // 2) Virtual 6-2 sub: if config is active and the setter would be in the FRONT row at this rotation,
+  //    swap pairs on this rendered rotation only — never mutate the stored R1 lineup.
+  //    Cross: setter's seat gets the opposite from the other pair (as a hitter);
+  //           opposite's seat gets the setter from the other pair (so she sets from the back).
+  const cfg = S.meta && S.meta.opp62;
+  if(cfg && cfg.on && cfg.sA && cfg.oA && cfg.sB && cfg.oB){
+    let setterPos=null, currentIsA=null;
+    for(let p=1;p<=6;p++){
+      const pl=lineup[p]; if(!pl) continue;
+      if(pl.jersey===cfg.sA){ setterPos=p; currentIsA=true; break; }
+      if(pl.jersey===cfg.sB){ setterPos=p; currentIsA=false; break; }
+    }
+    const inFront = setterPos===2 || setterPos===3 || setterPos===4;
+    if(setterPos && inFront){
+      const inactiveS = currentIsA ? cfg.sA : cfg.sB;
+      const activeS   = currentIsA ? cfg.sB : cfg.sA;
+      const inactiveO = currentIsA ? cfg.oA : cfg.oB;
+      const activeO   = currentIsA ? cfg.oB : cfg.oA;
+      for(let p=1;p<=6;p++){
+        const pl=lineup[p]; if(!pl) continue;
+        if(pl.jersey===inactiveS){
+          lineup[p] = { ...pl, jersey: activeO, position: 'Oppo' };
+        } else if(pl.jersey===inactiveO){
+          lineup[p] = { ...pl, jersey: activeS, position: 'S' };
+        }
+      }
+    }
   }
   return lineup;
 }
