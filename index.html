@@ -271,6 +271,13 @@
   .rc-decision .rc-arrow-big{color:var(--ink-faint);font-size:14px;margin:0 2px}
   .rc-decision .rc-topscore{font-family:'Saira Condensed';font-weight:800;font-size:16px}
   .rc-decision .rc-totals{font-size:11px;color:var(--ink-faint);margin-left:auto;font-family:'Archivo'}
+  .rc-landline{display:flex;align-items:baseline;gap:6px;margin-top:5px;padding-top:5px;border-top:1px dashed rgba(63,169,245,.18)}
+  .rc-landline .rc-lbl{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:var(--ink-faint)}
+  .rc-landline .rc-landpos{font-family:'Saira Condensed';font-weight:800;font-size:16px;background:rgba(63,169,245,.14);padding:1px 8px;border-radius:5px;border:1px solid var(--g2)}
+  .rc-landline .rc-landpct{font-family:'Saira Condensed';font-weight:700;font-size:14px;color:var(--ink)}
+  .rc-landline .rc-landdet{font-size:11px;color:var(--ink-faint);font-family:'Archivo'}
+  .land-chip{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:2px 7px;margin-right:3px;display:inline-block;font-size:11px;line-height:1.6}
+  .land-chip b{font-family:'Saira Condensed';font-weight:800;color:var(--g2)}
   .rc-caret{color:var(--ink-faint);font-size:14px;flex-shrink:0;padding:0 4px}
   .rc-detail{padding:8px 12px 12px;border-top:1px solid var(--line);background:var(--bg)}
   .rc-detail-h{font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:var(--ink-faint);margin-bottom:6px}
@@ -369,6 +376,23 @@
   .sec-h .sec-caret{margin-left:auto;color:var(--ink-faint);font-size:14px;padding:0 6px}
   tr.rot-head td{border-bottom:none;padding-bottom:4px}
   tr.rot-detail td{border-bottom:1px solid var(--line);padding:0 6px 8px 34px}
+  /* player attack profiles — per-hitter breakdown */
+  .pap-wrap{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+  .pap-card{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+  .pap-head{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .pap-head .pap-jersey{font-family:'Saira Condensed';font-weight:800;font-size:22px;color:#bfe0ff;background:rgba(63,169,245,.14);padding:1px 10px;border-radius:6px;border:1px solid var(--g2);line-height:1}
+  .pap-head .pap-pos{font-family:'Saira Condensed';font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--g2);background:var(--panel);padding:2px 8px;border-radius:5px;border:1px solid var(--line)}
+  .pap-head .pap-tots{margin-left:auto;font-size:12px;color:var(--ink-dim)}
+  .pap-plays{display:flex;flex-direction:column;gap:3px}
+  .pap-row{display:flex;align-items:baseline;gap:6px;font-size:12px;padding:2px 0;flex-wrap:wrap}
+  .pap-row .pap-play{font-family:'Saira Condensed';font-weight:800;font-size:14px;color:var(--ink);background:rgba(255,210,74,.08);padding:1px 7px;border-radius:4px;border:1px solid rgba(255,210,74,.3);min-width:52px;text-align:center}
+  .pap-row .pap-freq{font-family:'Saira Condensed';font-weight:700;color:var(--ink-dim);font-size:13px}
+  .pap-row .pap-ct{font-size:11px;color:var(--ink-faint);font-family:'Archivo'}
+  .pap-row .pap-arrow{color:var(--ink-faint);margin:0 2px}
+  .pap-row .pap-land{font-family:'Saira Condensed';font-weight:700;font-size:13px}
+  .pap-row .pap-land b{font-weight:800;font-size:14px}
+  .pap-row .pap-noland{font-size:11px;color:var(--ink-faint);font-style:italic}
+  .pap-footer{font-size:11px;color:var(--ink-faint);padding:4px 2px;font-style:italic}
   table.sp-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:2px}
   .pgc-rot{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
   .pgc-rot-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
@@ -1009,6 +1033,28 @@ const ZONES=(()=>{
   return z;
 })();
 function zoneAt(x,y){ return ZONES.find(z=>x>=z.x0&&x<z.x1&&y>=z.y0&&y<z.y1)||null; }
+// Convert a zone id ('T-L-F' / 'B-M-B' / etc.) to its FIVB position number (1-6)
+// using the team's own perspective (left-front = pos 4, right-back = pos 1, etc.)
+function zoneIdToPos(id){
+  if(!id) return null;
+  const [,col,row]=id.split('-');
+  if(row==='F') return {L:4,M:3,R:2}[col]||null;
+  return {L:5,M:6,R:1}[col]||null;
+}
+// Who attacked, inferred from set play's origin zone + current lineup
+// Returns the jersey string or null if unknown.
+function attackerForEvent(e){
+  if(!e) return null;
+  const sp = e.setPlay || e.setTo;
+  if(!sp) return null;
+  const originZone = playOriginZone(sp);
+  if(!originZone) return null;
+  const originPos = zoneIdToPos(originZone);
+  if(!originPos) return null;
+  const lp = lineupForRot(e.rot);
+  if(!lp || !lp[originPos]) return null;
+  return lp[originPos].jersey || null;
+}
 function zoneLabel(id){
   if(!id) return '';
   const [,c,r]=id.split('-');
@@ -1621,6 +1667,69 @@ function rightNowCard(oppAtk){
     }
   }
 
+  // Landing heatmap for the selected rotation — a 3×2 grid matching the input layout
+  // (4-3-2 front, 5-6-1 back). Each cell shows attack count + kills, with intensity
+  // scaled to the busiest zone and a red tint climbing with kill count. Lets Jane
+  // glance down and position defenders where the ball is actually landing.
+  const landingHeatmap = (()=>{
+    const zoneDefs = [
+      {id:'B-L-F', pos:4}, {id:'B-M-F', pos:3}, {id:'B-R-F', pos:2},
+      {id:'B-L-B', pos:5}, {id:'B-M-B', pos:6}, {id:'B-R-B', pos:1},
+    ];
+    const stats = {};
+    zoneDefs.forEach(z=>{ stats[z.id] = {n:0, k:0}; });
+    let hasLanding = false;
+    rotAtks.forEach(e=>{
+      if(!e.lZone) return;
+      if(!stats[e.lZone]) return; // ignore zones outside the 6-grid (opp side)
+      stats[e.lZone].n++;
+      if(e.outcome==='Kill') stats[e.lZone].k++;
+      hasLanding = true;
+    });
+    if(!hasLanding) {
+      return `<div class="rn-lz-empty">No landing zones logged yet in R${r} — tap the "Landed" grid when you log attacks and this map fills in.</div>`;
+    }
+    const maxN = Math.max(...zoneDefs.map(z=>stats[z.id].n));
+    const maxK = Math.max(...zoneDefs.map(z=>stats[z.id].k));
+    // find the hot zone (most kills, break ties with volume)
+    let hotZone = null;
+    if(maxK>0){
+      hotZone = zoneDefs.reduce((best,z)=>{
+        const s = stats[z.id];
+        if(!best) return s.k>0 ? z : null;
+        const bs = stats[best.id];
+        if(s.k > bs.k) return z;
+        if(s.k === bs.k && s.n > bs.n) return z;
+        return best;
+      }, null);
+    }
+    const cells = zoneDefs.map(z=>{
+      const s = stats[z.id];
+      const freq = maxN ? s.n/maxN : 0;
+      const kRatio = s.n ? s.k/s.n : 0;
+      // Background opacity scales with volume; red tint climbs with kill ratio
+      const bgA = freq===0 ? 0.03 : (0.14 + freq*0.42);
+      const red = kRatio>0.5 ? 'rgba(255,93,93' : (kRatio>0.25 ? 'rgba(245,181,61' : 'rgba(255,210,74');
+      const bg = s.n===0 ? 'rgba(125,141,160,.05)' : `${red},${bgA.toFixed(2)})`;
+      const border = (hotZone && hotZone.id===z.id) ? 'var(--err)' : (s.n===0?'var(--line)':'rgba(255,210,74,.3)');
+      const borderW = (hotZone && hotZone.id===z.id) ? '2.5px' : '1px';
+      const nCol = s.n===0 ? 'var(--ink-faint)' : 'var(--ink)';
+      const kBadge = s.k>0 ? `<span class="rn-lz-k">${s.k}<span style="font-size:9px">K</span></span>` : '';
+      const hotTag = (hotZone && hotZone.id===z.id) ? `<span class="rn-lz-hot">HOT</span>` : '';
+      return `<div class="rn-lz-cell" style="background:${bg};border:${borderW} solid ${border}">
+        <span class="rn-lz-pos">${z.pos}</span>
+        <span class="rn-lz-n" style="color:${nCol}">${s.n}</span>
+        ${kBadge}
+        ${hotTag}
+      </div>`;
+    }).join('');
+    const totLand = zoneDefs.reduce((a,z)=>a+stats[z.id].n,0);
+    const totK = zoneDefs.reduce((a,z)=>a+stats[z.id].k,0);
+    return `<div class="rn-lz-head"><span>Where it's landing</span><span class="rn-lz-tot">${totLand} landed · ${totK} kills</span></div>
+      <div class="rn-lz-grid">${cells}</div>
+      ${hotZone ? `<div class="rn-lz-hint">Hot zone: <b style="color:var(--err)">position ${hotZone.pos}</b> — ${stats[hotZone.id].k} kill${stats[hotZone.id].k>1?'s':''} on ${stats[hotZone.id].n} attempt${stats[hotZone.id].n>1?'s':''}. Position your defender there.</div>` : ''}`;
+  })();
+
   return `<div class="rn-card">
     <div class="rn-head">
       <span class="rn-title">Right Now</span>
@@ -1629,6 +1738,7 @@ function rightNowCard(oppAtk){
     <div class="rn-rots">${rotBtns}</div>
     ${lineup}
     ${line}
+    <div class="rn-lz-section">${landingHeatmap}</div>
   </div>`;
 }
 function autoRead(){
@@ -1713,31 +1823,120 @@ function renderStats(){
   html+=rightNowCard(oppAtk);
   html+=autoRead();
 
-  // 1) Who's getting set & how (opponent attack by rotation — LEADS)
-  html+=sectionHead('1', 'Who\'s Getting Set — by Rotation','var(--g2)');
-  html+=atkByRotTable('',oppAtk);
+  // Passing stats are the fastest decisions during a match — pin them to the top of Live Stats.
 
-  // 1b) What they run on 3 / 2 / 1 passes (by rotation) — collapsible in live stats
-  html+=collapsibleSectionHead('2', 'What They Run — by Pass Grade','var(--g2)', S.passGradeOpen, 'passGrade');
-  if(S.passGradeOpen) html+=attacksByPassGrade(oppAtk);
-
-  // 2) Opponent Serve Receive (by rotation + overall)
-  html+=sectionHead('3', S.meta.oppName+' Serve Receive','var(--g2)');
+  // 1) Opponent Serve Receive (by rotation + per-player)
+  html+=sectionHead('1', S.meta.oppName+' Serve Receive','var(--g2)');
   html+=rotStrip('','opp','var(--g2)');
   html+=passTable('',opp,'var(--g2)');
 
-  // 3) Georgetown Serve Receive (by rotation + by player)
-  html+=sectionHead('4', S.meta.ourName+' Serve Receive','var(--accent)');
+  // 2) Georgetown Serve Receive (by rotation + per-player)
+  html+=sectionHead('2', S.meta.ourName+' Serve Receive','var(--accent)');
   html+=rotStrip('','ours','var(--accent)');
   html+=passTable('',our,'var(--accent)');
 
-  // Shot chart in Live Stats removed per request — landing zones highlight on the main court instead.
-  // (shotChart() still exists for use in the printed Report if we add it back there.)
+  // 3) Who's getting set — rotation attack cards
+  html+=sectionHead('3', 'Who\'s Getting Set — by Rotation','var(--g2)');
+  html+=atkByRotTable('',oppAtk);
+
+  // 4) Player attack profiles — per-hitter breakdown of plays and landing zones
+  html+=sectionHead('4', S.meta.oppName+' Attack Profiles — by Player','var(--g2)');
+  html+=playerAttackProfiles(oppAtk);
+
+  // "What They Run — by Pass Grade" lives in the Report only (removed from live stats per request).
 
   box.innerHTML=html||`<div class="empty">Stats appear as you log.</div>`;
 }
 function sectionHead(num,title,col){
   return `<div class="sec-h" style="border-left-color:${col}"><span class="sec-n" style="background:${col}">${num}</span><span class="sec-t">${title}</span></div>`;
+}
+
+/*
+  Player attack profiles — for each opponent attacker (inferred from set-play origin + rotation lineup),
+  show: jersey + role tag + total att / kills / kill%, then a per-play breakdown of
+  "Play · X of Y attempts (Z%) → dominant landing pos N (count, kills)".
+*/
+function playerAttackProfiles(oppAtk){
+  if(!oppAtk.length) return '<p style="color:var(--ink-faint);font-size:13px;padding:4px">No attacks logged yet.</p>';
+  // Group attacks by inferred attacker jersey
+  const byPlayer = {};
+  oppAtk.forEach(e=>{
+    const j = attackerForEvent(e);
+    if(!j) return;
+    if(!byPlayer[j]) byPlayer[j] = {jersey:j, position:null, n:0, k:0, plays:{}, _tagCounts:{}};
+    const p = byPlayer[j];
+    p.n++;
+    if(e.outcome==='Kill') p.k++;
+    const sp = e.setPlay || e.setTo;
+    if(sp){
+      if(!p.plays[sp]) p.plays[sp] = {n:0, k:0, lands:{}};
+      p.plays[sp].n++;
+      if(e.outcome==='Kill') p.plays[sp].k++;
+      if(e.lZone){
+        if(!p.plays[sp].lands[e.lZone]) p.plays[sp].lands[e.lZone] = {n:0,k:0};
+        p.plays[sp].lands[e.lZone].n++;
+        if(e.outcome==='Kill') p.plays[sp].lands[e.lZone].k++;
+      }
+    }
+    // Collect position tag from the inferred lineup slot — most common tag wins
+    const lp = lineupForRot(e.rot);
+    const sp2 = e.setPlay || e.setTo;
+    const originZone = sp2 ? playOriginZone(sp2) : null;
+    const originPos = originZone ? zoneIdToPos(originZone) : null;
+    if(lp && originPos && lp[originPos] && lp[originPos].position){
+      const tag = lp[originPos].position;
+      p._tagCounts[tag] = (p._tagCounts[tag]||0) + 1;
+    }
+  });
+  const players = Object.values(byPlayer);
+  if(!players.length) return '<p style="color:var(--ink-faint);font-size:13px;padding:4px">Attack profiles need a saved opponent lineup — ⋯ menu → Set opponent lineup.</p>';
+  // Resolve each player's dominant role tag
+  players.forEach(p=>{
+    const topTag = Object.entries(p._tagCounts).sort((a,b)=>b[1]-a[1])[0];
+    p.position = topTag ? topTag[0] : '';
+    delete p._tagCounts;
+  });
+  // Sort by total attacks desc
+  players.sort((a,b)=>b.n-a.n);
+  const pct = (n,d)=>d?Math.round(n/d*100)+'%':'—';
+  const cards = players.map(p=>{
+    const killPct = pct(p.k, p.n);
+    const killCol = p.n && p.k/p.n>=0.5?'var(--kill)':(p.n && p.k/p.n>=0.25?'var(--g1)':'var(--ink-dim)');
+    const playRows = Object.entries(p.plays).sort((a,b)=>b[1].n-a[1].n).map(([sp,pd])=>{
+      const topLand = Object.entries(pd.lands).sort((a,b)=>b[1].n-a[1].n)[0];
+      let landPart = '<span class="pap-noland">no landing data</span>';
+      if(topLand){
+        const [zId, zd] = topLand;
+        const posN = zoneIdToPos(zId);
+        const landPct = Math.round(zd.n/pd.n*100);
+        const landCol = zd.k>0 ? 'var(--kill)' : 'var(--g2)';
+        landPart = `<span class="pap-land" style="color:${landCol}">pos ${posN} <b>${landPct}%</b>${zd.k>0?` · ${zd.k}K`:''}</span>`;
+      }
+      const pFreqPct = pct(pd.n, p.n);
+      const pKillPct = pct(pd.k, pd.n);
+      const pKillCol = pd.n && pd.k/pd.n>=0.5?'var(--kill)':(pd.n && pd.k/pd.n>=0.25?'var(--g1)':'var(--ink-dim)');
+      return `<div class="pap-row">
+        <span class="pap-play">${esc(sp)}</span>
+        <span class="pap-freq">${pFreqPct}</span>
+        <span class="pap-ct">(${pd.n} att${pd.k?` · ${pd.k}K ${pKillPct}`:''})</span>
+        <span class="pap-arrow">→</span>
+        ${landPart}
+      </div>`;
+    }).join('');
+    return `<div class="pap-card">
+      <div class="pap-head">
+        <span class="pap-jersey">#${esc(p.jersey)}</span>
+        ${p.position?`<span class="pap-pos">${esc(p.position)}</span>`:''}
+        <span class="pap-tots">${p.n} att · <b style="color:${killCol}">${p.k} kill${p.k===1?'':'s'} (${killPct})</b></span>
+      </div>
+      <div class="pap-plays">${playRows}</div>
+    </div>`;
+  }).join('');
+  const unassigned = oppAtk.filter(e => !attackerForEvent(e)).length;
+  const footer = unassigned
+    ? `<div class="pap-footer">${unassigned} attack${unassigned===1?'':'s'} couldn't be assigned to a player (missing play tag or lineup gap).</div>`
+    : '';
+  return `<div class="pap-wrap">${cards}${footer}</div>`;
 }
 function collapsibleSectionHead(num,title,col,isOpen,toggleKey){
   const caret = isOpen ? '▾' : '▸';
@@ -1898,11 +2097,17 @@ function atkByRotTable(title,evs){
     const sp=e.setPlay||e.setTo||plays[plays.length-1];
     const s=c.sets[sp]=c.sets[sp]||{n:0,k:0};
     s.n++; if(e.outcome==='Kill') s.k++;
-    const dp=d.setPlays[sp]=d.setPlays[sp]||{n:0,k:0,how:{},kills:[]};
+    const dp=d.setPlays[sp]=d.setPlays[sp]||{n:0,k:0,how:{},kills:[],lands:{}};
     dp.n++; if(e.outcome==='Kill') dp.k++;
     const ht=e.type||'—';
     dp.how[ht]=(dp.how[ht]||0)+1;
     if(e.outcome==='Kill' && e.lZone) dp.kills.push(zoneLabel(e.lZone));
+    // Track landing zone distribution — all attacks (not just kills) so Jane sees where to position
+    if(e.lZone){
+      if(!dp.lands[e.lZone]) dp.lands[e.lZone] = {n:0,k:0};
+      dp.lands[e.lZone].n++;
+      if(e.outcome==='Kill') dp.lands[e.lZone].k++;
+    }
   });
   const pct=(num,den)=>den?Math.round(num/den*100)+'%':'—';
   const order=Object.keys(R).sort((a,b)=>(a==='?'?99:+a)-(b==='?'?99:+b));
@@ -1916,6 +2121,23 @@ function atkByRotTable(title,evs){
     const topFreq = pct(topD.n,d.n);
     const topKPct = pct(topD.k,topD.n);
     const topKCol = topD.n && topD.k/topD.n>=0.5?'var(--kill)':(topD.n && topD.k/topD.n>=0.25?'var(--g1)':'var(--ink-dim)');
+    // Top landing zone for the top play — where to position defenders
+    const topPlayLands = topSet ? topSet[1].lands : {};
+    const topLandEntry = Object.entries(topPlayLands).sort((a,b)=>b[1].n-a[1].n)[0];
+    let topLandLine = '';
+    if(topLandEntry){
+      const [zId, zd] = topLandEntry;
+      const landedPos = zoneIdToPos(zId);
+      const landedPct = topD.n ? Math.round(zd.n/topD.n*100) : 0;
+      const kAt = zd.k;
+      const landedCol = kAt>0 ? 'var(--kill)' : 'var(--g2)';
+      topLandLine = `<div class="rc-landline">
+        <span class="rc-lbl">Lands</span>
+        <span class="rc-landpos" style="color:${landedCol}">pos ${landedPos}</span>
+        <span class="rc-landpct">${landedPct}%</span>
+        <span class="rc-landdet">(${zd.n} of ${topD.n}${kAt>0?' · '+kAt+'K':''})</span>
+      </div>`;
+    }
     // Lineup context
     const frontRow=rotFrontRowText(r);
     const setterLoc=rotSetterLocation(r);
@@ -1946,8 +2168,16 @@ function atkByRotTable(title,evs){
       // set play detail
       const setPlaysDet=Object.entries(d.setPlays).sort((a,b)=>b[1].n-a[1].n).map(([p,dp])=>{
         const howStr=Object.entries(dp.how).sort((a,b)=>b[1]-a[1]).map(([h,n])=>`${esc(h)} ${n}`).join(' · ');
-        const landStr=dp.kills.length?dp.kills.reduce((a,l)=>{a[l]=(a[l]||0)+1;return a;},{}):null;
-        const landOut=landStr?Object.entries(landStr).sort((a,b)=>b[1]-a[1]).map(([l,n])=>`${esc(l)}${n>1?' ×'+n:''}`).join(', '):'—';
+        // Full landing distribution — all attacks, with kill counts per zone
+        const landEntries = Object.entries(dp.lands).sort((a,b)=>b[1].n-a[1].n);
+        const landOut = landEntries.length
+          ? landEntries.map(([zId,zd])=>{
+              const posN = zoneIdToPos(zId);
+              const pctZ = Math.round(zd.n/dp.n*100);
+              const kTag = zd.k>0 ? `<span style="color:var(--kill);font-weight:800">${zd.k}K</span>` : '';
+              return `<span class="land-chip"><b>pos ${posN}</b> ${pctZ}%${kTag?' · '+kTag:''}</span>`;
+            }).join(' ')
+          : '—';
         const runPct=pct(dp.n,d.n);
         const kPct=pct(dp.k,dp.n);
         const kPctCol = dp.n && dp.k/dp.n>=0.5?'var(--kill)':(dp.n && dp.k/dp.n>=0.25?'var(--g1)':'var(--ink-dim)');
@@ -1956,7 +2186,7 @@ function atkByRotTable(title,evs){
           <td class="n">${dp.n} <span style="font-size:10px;color:var(--ink-faint)">(${runPct})</span></td>
           <td class="n" style="color:var(--kill)">${dp.k} <span style="font-size:10px;color:${kPctCol}">${kPct}</span></td>
           <td style="font-size:11px;color:var(--ink-dim)">${howStr}</td>
-          <td style="font-size:11px;color:var(--kill)">${landOut}</td>
+          <td style="font-size:11px">${landOut}</td>
         </tr>`;
       }).join('');
       // Chronological: this rotation's attacks, most recent first
@@ -2005,6 +2235,7 @@ function atkByRotTable(title,evs){
             <span class="rc-topscore" style="color:${topKCol}">${topKPct} scored</span>
             <span class="rc-totals">· ${d.n} att · ${d.k} kill${d.k===1?'':'s'}</span>
           </div>
+          ${topLandLine}
         </div>
         <div class="rc-caret">${isExpanded?'▾':'▸'}</div>
       </div>
